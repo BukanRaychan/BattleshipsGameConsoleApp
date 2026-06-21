@@ -13,6 +13,7 @@ direction RL
             +event Action? OnGameEnded;
             
             GameController(): void
+            +StartPlacementPhase(): GameResponseDto
         }
     }
 
@@ -21,6 +22,17 @@ direction RL
             +string PlayerOneName
             +string PlayerTwoName
             +int BoardSize = 10
+        }
+
+        class EditShipPlacementDto {
+            +Ship? CurrentShip
+            +ConsoleKey Event
+        }
+
+        class GameResponseDto {
+            +Board Board
+            +IShip Ships
+            +IPlayer CurrentPlayer
         }
 
         class AttackResponseDto {
@@ -33,7 +45,7 @@ direction RL
         class IGameService {
             -List~IPlayer~ _players
             -List~IBoard~ _boards
-            -Dictionary<.IPlayer IBoard> _playerBoard
+            -Dictionary ~IPlayer#44;IBoard~ _playerBoard
             -Dictionary ~IPlayer#44; List~IShip~~ _shipsOnBoard
             +IPlayer CurrentPlayer 
 
@@ -42,14 +54,15 @@ direction RL
     
         class GameService {
             GameService()
+
+            -GenerateShips(IShip Ship)
             -IsHit(ICell cell)
         }
     }
 
     namespace Model {
         class IShip {
-            +ShipType Type
-            +int remainingParts
+            +ShipType ShipType
             +List~Cell~ Placement
             +Orietation Orientation = Orientation.Horizontal
         }
@@ -60,7 +73,6 @@ direction RL
 
         class IPlayer {
             +string Name
-            +IBoard Board
         }
 
         class Player {
@@ -91,8 +103,8 @@ direction RL
     namespace Types {
         class Coordinate {
             <<struct>>
-            X: int
-            Y: int
+            Horizontal X
+            VerticalLabel Y
         }
 
         class ShipType {

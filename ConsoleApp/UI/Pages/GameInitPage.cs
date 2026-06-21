@@ -22,7 +22,7 @@ public class GameInitPage : IPage
         Console.Write("Player one name: "); string? playerOneName = Console.ReadLine();
         Console.Write("Player two name: "); string? playerTwoName = Console.ReadLine();
 
-        _controller.Start();
+        _controller.StartPlacementPhase();
 
         return Console.ReadKey(true).Key switch
         {
