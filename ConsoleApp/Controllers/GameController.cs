@@ -1,11 +1,13 @@
-namespace ConsoleApp.Controlles;
+namespace ConsoleApp.Controllers;
 
 public class GameController
 {
-    public void Run()
+    public event Action<string>? OnMessage;
+    public event Action? OnGameOver;
+
+    public void Start()
     {
         
+        OnMessage?.Invoke("Game started!");
     }
-
-
 }

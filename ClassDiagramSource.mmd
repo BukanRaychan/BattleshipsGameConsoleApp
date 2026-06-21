@@ -1,0 +1,155 @@
+classDiagram
+direction TB
+    class ShipDetail {
+        Type: ShipType
+        Size: int
+    }
+
+    class Coordinate {
+        X: int
+        Y: int
+    }
+
+    class IShip {
+        ShipType Type
+        int Size
+        int Hits
+        GetShipDetail() ShipDetail
+        IsSunk() bool
+    }
+
+    class Ship {
+        +ShipType Type
+        +int Size
+        +int Hits
+        +Ship(ShipType type)
+        +GetShipDetail() ShipDetail
+        +IsSunk() bool
+    }
+
+    class ShipType {
+        Destroyer
+        Submarine
+        Cruiser
+        Battleship
+        Carrier
+    }
+
+    class VerticalLabel {
+        A
+        B
+        C
+        ...
+        H
+    }
+
+    class HorizontalLabel {
+        1
+        2
+        3
+        ...
+        8
+    }
+
+    class IPlayer {
+        string Name
+    }
+
+    class Player {
+        +string Name
+        +Player(string name)
+    }
+
+    class IBoard {
+        ICell[,] Cell
+        int Size
+    }
+
+    class Board {
+        +ICell[,] Cell
+        +int Size
+        +Board(int size)
+    }
+
+    class AttackResult {
+        Hit
+        Miss
+        Sunk
+    }
+
+    class ICell {
+        IShip? CurrentShip
+        bool IsHit
+        Coordinate Coordinate
+        AttackResult? ReceivedAttackResult
+    }
+
+    class Cell {
+        +IShip? CurrentShip
+        +bool IsHit
+        +Coordinate Coordinate
+        +AttackResult? ReceivedAttackResult
+    }
+
+    class GameController {
+        -List~IPlayer~ _players
+        -List~IBoard~ _boards
+        -Dictionary<.IPlayer, IBoard> _playerBoard
+        -Dictionary<.IBoard, List<.IShip>> _shipsOnBoard
+        +int Turn : readonly
+        +IPlayer CurrentPlayer : readonly
+        +Action~IPlayer~? OnGameEnded
+        +GameController(List~IPlayer~ players, List~IBoard~ Boards)
+        +StartGame() void
+        
+        +PlaceShip(IPlayer player, IShip ship, Coordinate startCoordinate, Coordinate endCoordinate) bool
+        +Attack(IPlayer player, IBoard targetBoard, Coordinate coordinate) AttackResult
+        +GetPlayers() List~IPlayer~
+        +GetBoardOfPlayer(IPlayer player) IBoard
+        +GetShipsOfPlayer(IPlayer player) List~IShip~
+        +CheckWinner() IPlayer?
+        -SwitchTurn() void
+        -ReceiveAttack(IBoard receiverBoard, Coordinate coordinate) AttackResult
+        -IsAllShipsOnBoardSunk(IBoard board) bool
+        -IsPlayerTurn(IPlayer player) bool
+        -GetOpponent(IPlayer player) IPlayer
+        -GetCoordinate(VerticalLabel verticalLabel, HorizontalLabel horizontalLabel) Coordinate
+        -GetShipAtCoordinate(IBoard board, Coordinate coordinate) IShip?
+        -RecordShipHit(IShip ship) void
+        -ValidateAttack(IBoard board, Coordinate coordinate) bool
+        -ValidateShipPlacement(IBoard board, IShip ship, Coordinate startCoordinate, Coordinate endCoordinate) bool
+    }
+
+
+    <<Enum>> ShipType
+    <<Enum>> AttackResult
+    <<Enum>> VerticalLabel
+    <<Enum>> HorizontalLabel
+
+    <<Interface>> IPlayer
+    <<Interface>> IBoard
+    <<Interface>> IShip
+    <<Interface>> ICell
+
+    Player *-- "1" Board
+    Board *-- Cell
+    Board *-- "0.." Ship
+    Cell *-- Coordinate
+
+    GameController <.. "2" Player
+    GameController <.. Board
+    GameController <.. Ship
+
+    ShipDetail --o Ship
+    ShipType --o Ship
+
+    AttackResult --o GameController
+    AttackResult --o Cell
+
+    ICell <|.. Cell
+
+    IBoard <|.. Board
+
+    IPlayer <|.. Player
+
+    IShip <|.. Ship

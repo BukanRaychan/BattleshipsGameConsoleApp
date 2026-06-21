@@ -1,6 +1,5 @@
-﻿using ConsoleApp.Controlles;
+using ConsoleApp.Controllers;
 using ConsoleApp.UI;
 
-
-ConsoleRenderer app = new (new GameController());
+var app = new App(new GameController());
 app.Run();
