@@ -3,11 +3,11 @@ using ConsoleApp.DTOs;
 
 namespace ConsoleApp.UI.Pages;
 
-public class GameInitPage : IPage
+public class ShipPlacementPage : IPage
 {
     private readonly GameController _controller;
 
-    public GameInitPage(GameController controller)
+    public ShipPlacementPage(GameController controller)
     {
         _controller = controller;
     }

@@ -18,7 +18,7 @@ direction RL
     }
 
     namespace DTOs {
-        class StartGameDto {
+        class StartPlacementPhaseDto {
             +string PlayerOneName
             +string PlayerTwoName
             +int BoardSize = 10
@@ -29,11 +29,17 @@ direction RL
             +ConsoleKey Event
         }
 
-        class GameResponseDto {
-            +Board Board
-            +IShip Ships
-            +IPlayer CurrentPlayer
+        class ShipPlacementResultDto {
+            +IBoard Board
+            +List~IShip~ CurrentShip
+            +ConsoleKey Event
         }
+
+        %% class GameResponseDto {
+        %%     -Dictionary ~IPlayer#44;IBoard~ _playerBoard
+        %%     -Dictionary ~IPlayer#44; List~IShip~~ _shipsOnBoard
+        %%     +IPlayer CurrentPlayer
+        %% }
 
         class AttackResponseDto {
             +IPlayer CurrentPlayer

@@ -1,3 +1,4 @@
+using ConsoleApp.DTOs;
 using ConsoleApp.Services;
 
 
@@ -14,7 +15,7 @@ public class GameController
         _gameService = new GameService();
     }
 
-    public void StartPlacementPhase()
+    public void StartPlacementPhase(StartPlacementPhaseDto dto)
     {
         
     }
