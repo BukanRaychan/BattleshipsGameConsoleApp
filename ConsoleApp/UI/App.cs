@@ -17,7 +17,7 @@ public class App
     public void Run()
     {
         IPage? current = new MainMenuPage(_controller);
-        
+        _controller.LoadGame();
         while (current != null)
         {
             current = _layout.Render(current);

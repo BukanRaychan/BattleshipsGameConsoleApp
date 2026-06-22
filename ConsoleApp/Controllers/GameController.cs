@@ -20,7 +20,7 @@ public class GameController
         
     }
 
-    public void StartGame()
+    public void LoadGame()
     {
         OnMessage?.Invoke("Game started!");
     }

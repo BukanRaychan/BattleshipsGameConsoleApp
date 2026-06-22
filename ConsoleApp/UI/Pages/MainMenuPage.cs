@@ -1,10 +1,17 @@
 using ConsoleApp.Controllers;
+using Spectre.Console;
 
 namespace ConsoleApp.UI.Pages;
 
 public class MainMenuPage : IPage
 {
     private readonly GameController _controller;
+    private enum Action
+    {
+        Enter_Game,
+        Quit
+    } 
+
 
     public MainMenuPage(GameController controller)
     {
@@ -13,13 +20,16 @@ public class MainMenuPage : IPage
 
     public IPage? Index()
     {
-        Console.WriteLine("1. Start Game");
-        Console.WriteLine("2. Exit");
+        var action = AnsiConsole.Prompt(
+            new SelectionPrompt<Action>()
+                .Title("Main Menu")
+                .HighlightStyle(new Style(Color.White, Color.DarkGreen, Decoration.Bold))
+                .AddChoices(Action.Enter_Game, Action.Quit));
 
-        return Console.ReadKey(true).Key switch
+        return action switch
         {
-            ConsoleKey.D1 => new GameInitPage(_controller),
-            ConsoleKey.D2 => null,
+            Action.Enter_Game => new GameInitPage(_controller),
+            Action.Quit => null,
             _ => this
         };
     }
