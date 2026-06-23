@@ -29,7 +29,7 @@ public class GameController
         return _gameService.EditShipPlacement(dto);
     }
 
-    private void Debug()
+    private void MsgEvent()
     {
         
     }

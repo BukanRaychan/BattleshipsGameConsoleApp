@@ -176,20 +176,20 @@ public class ShipPlacementPage : IPage
         grid.AddColumn();
 
         grid.AddRow(
-            "[bold yellow]W[/]  Move Up      ",
-            "[bold yellow]A[/]  Move Left    ",
-            "[bold yellow]S[/]  Move Down    ",
-            "[bold yellow]D[/]  Move Right   "
+            "[bold yellow]W/↑[/] Move Up      ",
+            "[bold yellow]A/←[/] Move Left    ",
+            "[bold yellow]S/↓[/] Move Down    ",
+            "[bold yellow]D/→[/]  Move Right   "
         );
         grid.AddRow(
-            "[bold yellow]Q[/]  Prev Ship    ",
-            "[bold yellow]E[/]  Next Ship    ",
-            "[bold yellow]R[/]  Rotate       ",
-            "[bold yellow]C[/]  Confirm      "
+            "[bold yellow]Q  [/] Prev Ship    ",
+            "[bold yellow]E  [/] Next Ship    ",
+            "[bold yellow]R  [/] Rotate       ",
+            "[bold yellow]C  [/]  Confirm     "
         );
         grid.AddRow(
-            "[bold yellow]Z[/]  Undo (max 5) ",
-            "[bold yellow]X[/]  Redo         ",
+            "[bold yellow]Z  [/] Undo (max 5) ",
+            "[bold yellow]X  [/] Redo         ",
             "[dim]* Can't switch ship if invalid[/]",
             "[red]Esc[/]  Exit to Menu "
         );

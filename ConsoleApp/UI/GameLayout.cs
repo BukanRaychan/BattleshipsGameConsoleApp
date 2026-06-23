@@ -36,7 +36,9 @@ public class GameLayout
         {
             AnsiConsole.MarkupLine($"[bold white on darkgreen]{_eventMsg}[/]");
             ClearEventMsg();
-        }
+        } else AnsiConsole.WriteLine();
+
+        AnsiConsole.WriteLine();
         
         IPage? next = page.Index();
         return next;

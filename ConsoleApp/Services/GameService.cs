@@ -16,6 +16,7 @@ public class GameService : IGameService
     private readonly List<PlacementState> _undoStack = [];
     private readonly List<PlacementState> _redoStack = [];
     private const int MaxUndoSteps = 5;
+    private Action<string> _messageProvider;
 
     private record PlacementState(
         List<(IShip Ship, List<Coordinate> Coords, Orientation Orientation)> ShipStates,
@@ -23,6 +24,7 @@ public class GameService : IGameService
         Coordinate Cursor
     );
 
+    /// <summary>Initializes empty player, board, and ship collections.</summary>
     public GameService()
     {
         _players = new();
@@ -31,6 +33,7 @@ public class GameService : IGameService
         CurrentPlayer = null;
     }
 
+    /// <summary>Sets up players, boards, and default ship positions; lifts the first ship for placement.</summary>
     public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto)
     {
         _players.AddRange([new Player(dto.PlayerOneName), new Player(dto.PlayerTwoName)]);
@@ -56,10 +59,12 @@ public class GameService : IGameService
             currentShips,
             CurrentPlayer,
             _selectedShip,
-            _indexPlayerCursor
+            _indexPlayerCursor,
+            true
         );
     }
 
+    /// <summary>Dispatches a key event to the appropriate placement handler and returns the updated state.</summary>
     public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -69,13 +74,13 @@ public class GameService : IGameService
 
         return dto.KeyEvent switch
         {
-            ConsoleKey.Q => HandlePrevShip(ships, board),
-            ConsoleKey.W => HandleMove(0, -1, board),
+            ConsoleKey.Q  => HandlePrevShip(ships, board),
+            ConsoleKey.W or ConsoleKey.UpArrow => HandleMove(0, -1, board),
             ConsoleKey.E => HandleNextShip(ships, board),
             ConsoleKey.R => HandleRotate(board),
-            ConsoleKey.A => HandleMove(-1, 0, board),
-            ConsoleKey.S => HandleMove(0, 1, board),
-            ConsoleKey.D => HandleMove(1, 0, board),
+            ConsoleKey.A or ConsoleKey.LeftArrow => HandleMove(-1, 0, board),
+            ConsoleKey.S or ConsoleKey.DownArrow => HandleMove(0, 1, board),
+            ConsoleKey.D or ConsoleKey.RightArrow => HandleMove(1, 0, board),
             ConsoleKey.Z => HandleUndo(board),
             ConsoleKey.X => HandleRedo(board),
             ConsoleKey.C => HandleConfirm(ships, board),
@@ -83,6 +88,7 @@ public class GameService : IGameService
         };
     }
 
+    /// <summary>Moves the selected ship by (dx, dy); rejects the move if it goes out of bounds.</summary>
     private ShipPlacementResponseDto HandleMove(int dx, int dy, IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -108,6 +114,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Toggles the selected ship between Horizontal and Vertical; rejects if the rotated position is out of bounds.</summary>
     private ShipPlacementResponseDto HandleRotate(IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -128,6 +135,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Lands the current ship and selects the next one in the list, wrapping to the first.</summary>
     private ShipPlacementResponseDto HandleNextShip(List<IShip> ships, IBoard board)
     {
         if (!IsCurrentShipValid(board))
@@ -144,6 +152,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Lands the current ship and selects the previous one in the list, wrapping to the last.</summary>
     private ShipPlacementResponseDto HandlePrevShip(List<IShip> ships, IBoard board)
     {
         if (!IsCurrentShipValid(board))
@@ -160,6 +169,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Restores the last saved placement state from the undo stack.</summary>
     private ShipPlacementResponseDto HandleUndo(IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -174,6 +184,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Re-applies the last undone placement state from the redo stack.</summary>
     private ShipPlacementResponseDto HandleRedo(IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -188,6 +199,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Validates all ship placements; if valid, advances to the next player or ends the placement phase.</summary>
     private ShipPlacementResponseDto HandleConfirm(List<IShip> ships, IBoard board)
     {
         bool allValid = ships.All(s =>
@@ -197,7 +209,6 @@ public class GameService : IGameService
         if (!allValid)
             return BuildResponse(board, ships);
 
-        // Land the selected ship before moving to the next player
         LandShip(_selectedShip!);
 
         _indexCurrentPlayer++;
@@ -217,15 +228,18 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
+    /// <summary>Constructs the response DTO from the current board, ships, and selection state.</summary>
     private ShipPlacementResponseDto BuildResponse(IBoard board, List<IShip> ships) =>
         new(board, ships, CurrentPlayer!, _selectedShip, _indexPlayerCursor, IsCurrentShipValid(board));
 
+    /// <summary>Returns true if the selected ship's current placement is collision-free and in bounds.</summary>
     private bool IsCurrentShipValid(IBoard board)
     {
         if (_selectedShip?.Placement == null) return false;
         return IsValidPlacement([.. _selectedShip.Placement.Select(c => c.Coordinate)], board);
     }
 
+    /// <summary>Returns true if the given coordinates are in bounds and have no adjacent ships on the board.</summary>
     private static bool IsValidPlacement(List<Coordinate> coords, IBoard board)
     {
         if (coords.Any(c => !IsInBounds(c, board.Size))) return false;
@@ -246,9 +260,11 @@ public class GameService : IGameService
         return true;
     }
 
+    /// <summary>Returns the board coordinates the ship occupies at the given cursor position.</summary>
     private static List<Coordinate> GetShipCoordinates(IShip ship, Coordinate cursor) =>
         GetShipCoordinatesWithOrientation(ship, cursor, ship.Orientation);
 
+    /// <summary>Returns coordinates for a ship at a cursor position using a specific orientation.</summary>
     private static List<Coordinate> GetShipCoordinatesWithOrientation(IShip ship, Coordinate cursor, Orientation orientation)
     {
         int length = (int)ship.ShipType;
@@ -263,17 +279,19 @@ public class GameService : IGameService
         return coords;
     }
 
+    /// <summary>Returns the middle cell coordinate of the ship, used as the cursor reference point.</summary>
     private static Coordinate GetAnchorCoordinate(IShip ship)
     {
         int anchorIdx = (int)ship.ShipType / 2;
         return ship.Placement![anchorIdx].Coordinate;
     }
 
+    /// <summary>Returns true if the coordinate falls within the board boundaries.</summary>
     private static bool IsInBounds(Coordinate coord, int boardSize) =>
         (int)coord.X >= 0 && (int)coord.X < boardSize &&
         (int)coord.Y >= 0 && (int)coord.Y < boardSize;
 
-    // Removes the ship from cell.Ship — ship is now "in hand"
+    /// <summary>Clears the ship reference from its occupied cells so it no longer blocks collision checks.</summary>
     private static void LiftShip(IShip ship)
     {
         if (ship.Placement == null) return;
@@ -281,7 +299,7 @@ public class GameService : IGameService
             cell.Ship = null;
     }
 
-    // Writes the ship back into cell.Ship — ship is now "placed"
+    /// <summary>Writes the ship reference back into its occupied cells to mark them as taken.</summary>
     private static void LandShip(IShip ship)
     {
         if (ship.Placement == null) return;
@@ -289,12 +307,13 @@ public class GameService : IGameService
             cell.Ship = ship;
     }
 
-    // Updates ship.Placement to new cells without touching cell.Ship
+    /// <summary>Updates the ship's placement list to the new cell references without modifying cell.Ship.</summary>
     private static void UpdateShipPlacement(IShip ship, List<Coordinate> coords, IBoard board)
     {
-        ship.Placement = [.. coords.Select(c => board.Cell[(int)c.X, (int)c.Y])];
+        ship.Placement = [..coords.Select(c => board.Cell[(int)c.X, (int)c.Y])];
     }
 
+    /// <summary>Captures current ship positions, orientations, and cursor into a PlacementState.</summary>
     private PlacementState CreateSnapshot(List<IShip> ships)
     {
         var shipStates = ships
@@ -303,6 +322,7 @@ public class GameService : IGameService
         return new PlacementState(shipStates, ships.IndexOf(_selectedShip!), _indexPlayerCursor);
     }
 
+    /// <summary>Clears the board and restores all ship placements from a PlacementState.</summary>
     private void ApplySnapshot(PlacementState state, IBoard board, List<IShip> ships)
     {
         // Clear all cells
@@ -325,6 +345,7 @@ public class GameService : IGameService
             LandShip(ship);
     }
 
+    /// <summary>Pushes the current state onto the undo stack, evicting the oldest entry if at capacity.</summary>
     private void PushUndo(List<IShip> ships)
     {
         if (_undoStack.Count >= MaxUndoSteps)
@@ -332,6 +353,7 @@ public class GameService : IGameService
         _undoStack.Add(CreateSnapshot(ships));
     }
 
+    /// <summary>Places all ships vertically in columns as the initial default arrangement.</summary>
     private static List<IShip> PlaceShipsDefault(IBoard board)
     {
         var ships = new List<IShip>();
