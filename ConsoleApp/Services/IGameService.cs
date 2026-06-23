@@ -1,8 +1,11 @@
 using ConsoleApp.DTOs;
+using ConsoleApp.Models;
 
 namespace ConsoleApp.Services;
 
 public interface IGameService
 {
-    public ShipPlacementResponseDto StartPlacementPhase(StartPlacementPhaseDto dto);
+    public IPlayer CurrentPlayer {get; set;}
+    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto);
+    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto);
 }

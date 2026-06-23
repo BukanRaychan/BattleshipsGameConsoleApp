@@ -22,5 +22,6 @@ public class App
         {
             current = _layout.Render(current);
         }
+        Console.Clear();
     }
 }

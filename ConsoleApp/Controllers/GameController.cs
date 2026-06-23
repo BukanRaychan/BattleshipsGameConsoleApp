@@ -14,14 +14,24 @@ public class GameController
     {
         _gameService = new GameService();
     }
+    public void LoadGame()
+    {
+        OnMessage?.Invoke("Welcome to battleship game!!! ", false);
+    }
 
-    public void StartPlacementPhase(StartPlacementPhaseDto dto)
+    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto)
+    {
+        return _gameService.StartShipPlacementPhase(dto);
+    }
+
+    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto)
+    {
+        return _gameService.EditShipPlacement(dto);
+    }
+
+    private void Debug()
     {
         
     }
 
-    public void LoadGame()
-    {
-        OnMessage?.Invoke("Game started!");
-    }
 }

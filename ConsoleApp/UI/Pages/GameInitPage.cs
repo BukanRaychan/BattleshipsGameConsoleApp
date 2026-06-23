@@ -19,8 +19,8 @@ public class GameInitPage : IPage
         string playerOneName = AnsiConsole.Ask<string>("Insert first player's name?\t");
         string playerTwoName = AnsiConsole.Ask<string>("Insert second player's name?\t");
 
-        _controller.StartPlacementPhase(new StartPlacementPhaseDto(playerOneName, playerTwoName));
+        ShipPlacementResponseDto state = _controller.StartShipPlacementPhase(new StartPlacementPhaseDto(playerOneName, playerTwoName));
 
-        return new ShipPlacementPage(_controller);
+        return new ShipPlacementPage(_controller, state);
     }
 }

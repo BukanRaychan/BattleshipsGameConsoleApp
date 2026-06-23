@@ -9,8 +9,9 @@ public class Ship : IShip
 
     public Orientation Orientation {get; set;}
 
-    public Ship(ShipType shipType)
+    public Ship(ShipType shipType, Orientation orientation)
     {
+        Orientation = orientation;
         ShipType = shipType;
     }
 }

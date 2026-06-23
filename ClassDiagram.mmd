@@ -25,14 +25,18 @@ direction RL
         }
 
         class EditShipPlacementDto {
-            +Ship? CurrentShip
-            +ConsoleKey Event
+            +Ship CurrentShip
+            +ConsoleKey KeyEvent
+            +Coordinate IndexPlayerCursor
         }
 
         class ShipPlacementResultDto {
             +IBoard Board
-            +List~IShip~ CurrentShip
-            +ConsoleKey Event
+            +List~IShip~ PlayerShip
+            +IPlayer CurrentPlayer
+            +IShip? SelectedShip
+            +Coordinate IndexPlayerCursor
+            +bool isValidPlacement;
         }
 
         %% class GameResponseDto {
@@ -52,7 +56,7 @@ direction RL
             -List~IPlayer~ _players
             -List~IBoard~ _boards
             -Dictionary ~IPlayer#44;IBoard~ _playerBoard
-            -Dictionary ~IPlayer#44; List~IShip~~ _shipsOnBoard
+            -Dictionary ~IPlayer#44; List~IShip~~ _playerShups
             +IPlayer CurrentPlayer 
 
             +StartGame(StartGameDto) void

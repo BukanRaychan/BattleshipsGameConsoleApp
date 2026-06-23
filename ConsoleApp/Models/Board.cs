@@ -7,9 +7,9 @@ public class Board : IBoard
     public ICell[,] Cell { get; set; }
     public int Size { get; set; }
 
-    public Board()
+    public Board(int size)
     {
-        Size = 10;
+        Size = size;
         Cell = GenerateCells();
     }
 
