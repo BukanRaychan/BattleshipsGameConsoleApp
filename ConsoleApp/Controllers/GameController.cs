@@ -16,7 +16,7 @@ public class GameController
     }
     public void LoadGame()
     {
-        OnMessage?.Invoke("Welcome to battleship game!!! ", false);
+        OnMessage?.Invoke("Welcome to battleship game!!! ");
     }
 
     public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto)
