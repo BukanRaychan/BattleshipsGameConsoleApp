@@ -21,7 +21,7 @@ public class ShipPlacementPage : IPage
     {
         Render();
 
-        var key = Console.ReadKey(intercept: true).Key;
+        var key = Console.ReadKey(intercept: false).Key;
 
         if (key == ConsoleKey.Escape)
             return new MainMenuPage(_controller);
@@ -30,8 +30,7 @@ public class ShipPlacementPage : IPage
             new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
         );
 
-
-        return new ShipPlacementPage(_controller, _state);
+        return !_state.IsPlacementPhaseFinished ? new ShipPlacementPage(_controller, _state) : null;
     }
 
     private void Render()

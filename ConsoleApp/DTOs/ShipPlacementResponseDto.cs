@@ -9,5 +9,6 @@ public record ShipPlacementResponseDto(
     IPlayer CurrentPlayer,
     IShip? SelectedShip = null,
     Coordinate IndexPlayerCursor = new(),
-    bool IsValidPlacement = false
+    bool IsValidPlacement = false,
+    bool IsPlacementPhaseFinished = false
 );

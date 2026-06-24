@@ -1,24 +1,26 @@
-using System.ComponentModel;
 using ConsoleApp.Controllers;
+using ConsoleApp.Types;
 using Spectre.Console;
 
 namespace ConsoleApp.UI;
 
+
 public class GameLayout
 {
     private string _eventMsg = "";
+    private MessageType _eventMsgType = default;
     private readonly GameController _controller;
 
     public GameLayout(GameController gameController)
     {
         _controller = gameController;
-        _controller.OnMessage += (msg) => _eventMsg = msg;
+        _controller.OnMessage += (msg, msgType) => {_eventMsg = msg; _eventMsgType = msgType;};
     }
 
     public IPage? Render(IPage page)
     {
         AnsiConsole.Clear();
-        
+        AnsiConsole.WriteLine();AnsiConsole.WriteLine();
         AnsiConsole.Markup("""
  [bold white]____              __    __    ___                   __                      ____
 /\  _`\           /\ \__/\ \__/\_ \                 /\ \      __            /\  _`\
@@ -29,12 +31,22 @@ public class GameLayout
     \/___/  \/__/\/_/ \/__/ \/__/\/____/\/____/\/___/   \/_/\/_/\/_/\ \ \/      \/___/  \/__/\/_/\/_/\/_/\/_/\/____/
                                                                      \ \_\
                                                                       \/_/[/]
-
 """);
-
+        AnsiConsole.WriteLine();
         if (_eventMsg != "")
         {
-            AnsiConsole.MarkupLine($"[bold white on darkgreen]{_eventMsg}[/]");
+            var (icon, color) = _eventMsgType switch
+            {
+                MessageType.Info  => ("ℹ", "dodgerblue2"),
+                MessageType.Debug => ("⚙", "gold1"),
+                MessageType.Error => ("✗", "red1"),
+                _                 => ("·", "grey")
+            };
+            AnsiConsole.Write(
+                new Rule($"[bold {color}]{icon}  {Markup.Escape(_eventMsg)}[/]")
+                    .LeftJustified()
+                    .RuleStyle(Style.Parse($"dim {color}"))
+            );
             ClearEventMsg();
         } else AnsiConsole.WriteLine();
 
@@ -44,5 +56,5 @@ public class GameLayout
         return next;
     }
 
-    private void ClearEventMsg() => _eventMsg = "";
+    private void ClearEventMsg() {_eventMsg = ""; _eventMsgType = default;}
 }

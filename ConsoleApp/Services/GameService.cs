@@ -7,8 +7,8 @@ namespace ConsoleApp.Services;
 public class GameService : IGameService
 {
     private List<IPlayer> _players;
-    private Dictionary<IPlayer, IBoard> _playerBoard;
-    private Dictionary<IPlayer, List<IShip>> _playerShips;
+    private readonly Dictionary<IPlayer, IBoard> _playerBoard;
+    private readonly Dictionary<IPlayer, List<IShip>> _playerShips;
     public IPlayer? CurrentPlayer { get; set; }
     private int _indexCurrentPlayer = 0;
     private IShip? _selectedShip;
@@ -16,7 +16,7 @@ public class GameService : IGameService
     private readonly List<PlacementState> _undoStack = [];
     private readonly List<PlacementState> _redoStack = [];
     private const int MaxUndoSteps = 5;
-    private Action<string> _messageProvider;
+    private MessageDelegate _messageProvider;
 
     private record PlacementState(
         List<(IShip Ship, List<Coordinate> Coords, Orientation Orientation)> ShipStates,
@@ -25,12 +25,13 @@ public class GameService : IGameService
     );
 
     /// <summary>Initializes empty player, board, and ship collections.</summary>
-    public GameService()
+    public GameService(MessageDelegate messageEventSubscriber)
     {
         _players = new();
         _playerBoard = new();
         _playerShips = new();
         CurrentPlayer = null;
+        _messageProvider += messageEventSubscriber;
     }
 
     /// <summary>Sets up players, boards, and default ship positions; lifts the first ship for placement.</summary>
@@ -75,12 +76,12 @@ public class GameService : IGameService
         return dto.KeyEvent switch
         {
             ConsoleKey.Q  => HandlePrevShip(ships, board),
-            ConsoleKey.W or ConsoleKey.UpArrow => HandleMove(0, -1, board),
+            ConsoleKey.W or ConsoleKey.UpArrow => HandleShipPlacementMove(0, -1, board),
             ConsoleKey.E => HandleNextShip(ships, board),
             ConsoleKey.R => HandleRotate(board),
-            ConsoleKey.A or ConsoleKey.LeftArrow => HandleMove(-1, 0, board),
-            ConsoleKey.S or ConsoleKey.DownArrow => HandleMove(0, 1, board),
-            ConsoleKey.D or ConsoleKey.RightArrow => HandleMove(1, 0, board),
+            ConsoleKey.A or ConsoleKey.LeftArrow => HandleShipPlacementMove(-1, 0, board),
+            ConsoleKey.S or ConsoleKey.DownArrow => HandleShipPlacementMove(0, 1, board),
+            ConsoleKey.D or ConsoleKey.RightArrow => HandleShipPlacementMove(1, 0, board),
             ConsoleKey.Z => HandleUndo(board),
             ConsoleKey.X => HandleRedo(board),
             ConsoleKey.C => HandleConfirm(ships, board),
@@ -89,7 +90,7 @@ public class GameService : IGameService
     }
 
     /// <summary>Moves the selected ship by (dx, dy); rejects the move if it goes out of bounds.</summary>
-    private ShipPlacementResponseDto HandleMove(int dx, int dy, IBoard board)
+    private ShipPlacementResponseDto HandleShipPlacementMove(int dx, int dy, IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
         int newX = (int)_indexPlayerCursor.X + dx;
@@ -114,7 +115,7 @@ public class GameService : IGameService
         return BuildResponse(board, ships);
     }
 
-    /// <summary>Toggles the selected ship between Horizontal and Vertical; rejects if the rotated position is out of bounds.</summary>
+    /// <summary>Toggles orientation and shifts the cursor so the rotated ship always fits within board bounds.</summary>
     private ShipPlacementResponseDto HandleRotate(IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
@@ -124,8 +125,21 @@ public class GameService : IGameService
 
         var newCoords = GetShipCoordinatesWithOrientation(_selectedShip, _indexPlayerCursor, newOrientation);
 
-        if (!newCoords.All(c => IsInBounds(c, board.Size)))
-            return BuildResponse(board, ships);
+        int cursorX = (int)_indexPlayerCursor.X;
+        int cursorY = (int)_indexPlayerCursor.Y;
+
+        int minX = newCoords.Min(c => (int)c.X);
+        int maxX = newCoords.Max(c => (int)c.X);
+        int minY = newCoords.Min(c => (int)c.Y);
+        int maxY = newCoords.Max(c => (int)c.Y);
+
+        if (minX < 0) cursorX -= minX;
+        if (maxX >= board.Size) cursorX -= maxX - (board.Size - 1);
+        if (minY < 0) cursorY -= minY;
+        if (maxY >= board.Size) cursorY -= maxY - (board.Size - 1);
+
+        _indexPlayerCursor = new Coordinate((HorizontalLabel)cursorX, (VerticalLabel)cursorY);
+        newCoords = GetShipCoordinatesWithOrientation(_selectedShip, _indexPlayerCursor, newOrientation);
 
         PushUndo(ships);
         _selectedShip.Orientation = newOrientation;
@@ -138,8 +152,10 @@ public class GameService : IGameService
     /// <summary>Lands the current ship and selects the next one in the list, wrapping to the first.</summary>
     private ShipPlacementResponseDto HandleNextShip(List<IShip> ships, IBoard board)
     {
-        if (!IsCurrentShipValid(board))
+        if (!IsCurrentShipValid(board)){
+            _messageProvider?.Invoke("Invalid placement — the ship must not overlap with or be within 1 cell of another ship. Cannot proceed to select the next ship.", MessageType.Error);
             return BuildResponse(board, ships);
+        }
 
         LandShip(_selectedShip!);
 
@@ -155,8 +171,10 @@ public class GameService : IGameService
     /// <summary>Lands the current ship and selects the previous one in the list, wrapping to the last.</summary>
     private ShipPlacementResponseDto HandlePrevShip(List<IShip> ships, IBoard board)
     {
-        if (!IsCurrentShipValid(board))
+        if (!IsCurrentShipValid(board)) {
+            _messageProvider?.Invoke("Invalid placement — the ship must not overlap with or be within 1 cell of another ship. Cannot proceed to select the previous ship.", MessageType.Error);
             return BuildResponse(board, ships);
+        }
 
         LandShip(_selectedShip!);
 
@@ -202,12 +220,10 @@ public class GameService : IGameService
     /// <summary>Validates all ship placements; if valid, advances to the next player or ends the placement phase.</summary>
     private ShipPlacementResponseDto HandleConfirm(List<IShip> ships, IBoard board)
     {
-        bool allValid = ships.All(s =>
-            s.Placement != null &&
-            IsValidPlacement([.. s.Placement.Select(c => c.Coordinate)], board));
-
-        if (!allValid)
+        if (!IsCurrentShipValid(board)){
+            _messageProvider?.Invoke("Invalid placement — the ship must not overlap with or be within 1 cell of another ship. Cannot proceed to confirmation step.", MessageType.Error);
             return BuildResponse(board, ships);
+        }
 
         LandShip(_selectedShip!);
 

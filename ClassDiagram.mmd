@@ -1,19 +1,68 @@
 classDiagram
-direction RL
+direction TB
+
     namespace UI {
         class App {
-            
+            +Run() void
+        }
+
+        class GameLayout {
+            -string _eventMsg
+            -MessageType _eventMsgType
+            -GameController _controller
+            +GameLayout(GameController)
+            +Render(IPage page) IPage?
+        }
+
+        class IPage {
+            <<interface>>
+            +Index() IPage?
+        }
+
+        class MainMenuPage {
+            -GameController _controller
+            +Index() IPage?
+        }
+
+        class GameInitPage {
+            -GameController _controller
+            +Index() IPage?
+        }
+
+        class ShipPlacementPage {
+            -GameController _controller
+            -ShipPlacementResponseDto _state
+            +Index() IPage?
+        }
+
+        class GameBoardPage {
+            -GameController _controller
+            -AttackResponseDto _state
+            +Index() IPage?
+        }
+
+        class TransitionPage {
+            -GameController _controller
+            -AttackResponseDto _state
+            +Index() IPage?
+        }
+
+        class GameOverPage {
+            -GameController _controller
+            -AttackResponseDto _state
+            +Index() IPage?
         }
     }
 
     namespace Controllers {
         class GameController {
             -IGameService _gameService
-            +event Action<string>? OnMessage;
-            +event Action? OnGameEnded;
-            
-            GameController(): void
-            +StartPlacementPhase(): GameResponseDto
+            +event MessageDelegate? OnMessage
+            +GameController()
+            +LoadGame() void
+            +StartShipPlacementPhase(StartPlacementPhaseDto) ShipPlacementResponseDto
+            +EditShipPlacement(EditShipPlacementDto) ShipPlacementResponseDto
+            +MakeAttack(AttackDto) AttackResponseDto
         }
     }
 
@@ -25,123 +74,141 @@ direction RL
         }
 
         class EditShipPlacementDto {
-            +Ship CurrentShip
+            +Ship? CurrentShip
             +ConsoleKey KeyEvent
             +Coordinate IndexPlayerCursor
         }
 
-        class ShipPlacementResultDto {
+        class ShipPlacementResponseDto {
             +IBoard Board
-            +List~IShip~ PlayerShip
+            +List~IShip~ Ships
             +IPlayer CurrentPlayer
             +IShip? SelectedShip
             +Coordinate IndexPlayerCursor
-            +bool isValidPlacement;
+            +bool IsValidPlacement
+            +bool IsPlacementPhaseFinished
         }
 
-        %% class GameResponseDto {
-        %%     -Dictionary ~IPlayer#44;IBoard~ _playerBoard
-        %%     -Dictionary ~IPlayer#44; List~IShip~~ _shipsOnBoard
-        %%     +IPlayer CurrentPlayer
-        %% }
+        class AttackDto {
+            +Coordinate Target
+        }
 
         class AttackResponseDto {
+            +IBoard PlayerBoard
+            +IBoard OpponentBoard
             +IPlayer CurrentPlayer
-            +Board 
+            +Coordinate LastAttack
+            +AttackResult LastResult
+            +bool IsGameOver
+            +IPlayer? Winner
         }
     }
 
     namespace Services {
         class IGameService {
-            -List~IPlayer~ _players
-            -List~IBoard~ _boards
-            -Dictionary ~IPlayer#44;IBoard~ _playerBoard
-            -Dictionary ~IPlayer#44; List~IShip~~ _playerShups
-            +IPlayer CurrentPlayer 
-
-            +StartGame(StartGameDto) void
+            <<interface>>
+            +IPlayer CurrentPlayer
+            +StartShipPlacementPhase(StartPlacementPhaseDto) ShipPlacementResponseDto
+            +EditShipPlacement(EditShipPlacementDto) ShipPlacementResponseDto
+            +MakeAttack(AttackDto) AttackResponseDto
         }
-    
-        class GameService {
-            GameService()
 
-            -GenerateShips(IShip Ship)
-            -IsHit(ICell cell)
+        class GameService {
+            -List~IPlayer~ _players
+            -Dictionary _playerBoard
+            -Dictionary _playerShips
+            -int _indexCurrentPlayer
+            -IShip? _selectedShip
+            -Coordinate _indexPlayerCursor
+            -List~PlacementState~ _undoStack
+            -List~PlacementState~ _redoStack
+            -MessageDelegate _messageProvider
+            +GameService(MessageDelegate)
+            +StartShipPlacementPhase(StartPlacementPhaseDto) ShipPlacementResponseDto
+            +EditShipPlacement(EditShipPlacementDto) ShipPlacementResponseDto
+            +MakeAttack(AttackDto) AttackResponseDto
         }
     }
 
-    namespace Model {
+    namespace Models {
         class IShip {
+            <<interface>>
             +ShipType ShipType
-            +List~Cell~ Placement
-            +Orietation Orientation = Orientation.Horizontal
+            +Orientation Orientation
+            +List~ICell~? Placement
         }
 
         class Ship {
-            Ship(ShipType type)
+            +Ship(ShipType type, Orientation orientation)
         }
 
         class IPlayer {
+            <<interface>>
             +string Name
         }
 
         class Player {
-            Player(string name)
+            +Player(string name)
         }
 
         class IBoard {
+            <<interface>>
             +ICell[,] Cell
             +int Size
         }
 
         class Board {
-            Board(int size)
+            +Board(int size)
         }
 
-
         class ICell {
+            <<interface>>
             +IShip? Ship
             +Coordinate Coordinate
-            AttackResult? ReceivedAttackResult
+            +AttackResult? ReceivedAttackResult
         }
 
         class Cell {
-            Cell(Coordinate coordinate)
+            +Cell(Coordinate coordinate)
         }
     }
 
     namespace Types {
+        class MessageDelegate {
+            <<delegate>>
+            Invoke(string msg, MessageType type) void
+        }
+
+        class MessageType {
+            <<enum>>
+            Info
+            Debug
+            Error
+        }
+
         class Coordinate {
             <<struct>>
-            Horizontal X
-            VerticalLabel Y
+            +HorizontalLabel X
+            +VerticalLabel Y
         }
 
         class ShipType {
             <<enum>>
             Destroyer = 2
             Submarine = 3
-            Cruiser = 3 
+            Cruiser = 3
             Battleship = 4
             Carrier = 5
         }
 
         class VerticalLabel {
             <<enum>>
-            A
-            B
-            C
-            ...
-            H
+            A B C D E F G H I J
         }
 
         class HorizontalLabel {
             <<enum>>
-            1
-            2
-            3
-            ...
-            8
+            _1 _2 _3 _4 _5 _6 _7 _8 _9 _10
         }
 
         class AttackResult {
@@ -151,20 +218,44 @@ direction RL
             Sunk
         }
 
-        class Orietation {
+        class Orientation {
             <<enum>>
             Horizontal
             Vertical
         }
     }
 
-    IShip <|.. Ship : Implements
-    IPlayer <|.. Player : Implements
-    IBoard <|.. Board: Implements
-    ICell <|.. Cell: Implements
+    %% Inheritance
+    IPage       <|.. MainMenuPage      : implements
+    IPage       <|.. GameInitPage      : implements
+    IPage       <|.. ShipPlacementPage : implements
+    IPage       <|.. GameBoardPage     : implements
+    IPage       <|.. TransitionPage    : implements
+    IPage       <|.. GameOverPage      : implements
+    IShip       <|.. Ship              : implements
+    IPlayer     <|.. Player            : implements
+    IBoard      <|.. Board             : implements
+    ICell       <|.. Cell              : implements
+    IGameService <|.. GameService      : implements
 
+    %% Composition / dependencies
+    App              --> GameLayout
+    GameLayout       --> GameController
+    GameLayout       o-- IPage
 
-    
-    
+    MainMenuPage     --> GameController
+    GameInitPage     --> GameController
+    ShipPlacementPage --> GameController
+    GameBoardPage    --> GameController
+    TransitionPage   --> GameController
+    GameOverPage     --> GameController
 
-    
+    GameController   --> IGameService
+    GameController   ..> MessageDelegate : fires
+
+    GameService      ..> IPlayer  : manages
+    GameService      ..> IBoard   : manages
+    GameService      ..> IShip    : manages
+
+    IBoard           o-- ICell
+    IShip            o-- ICell
