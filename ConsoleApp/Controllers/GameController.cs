@@ -29,6 +29,10 @@ public class GameController
         return _gameService.EditShipPlacement(dto);
     }
 
+    public AttackResponseDto StartAttackPhase() => _gameService.StartAttackPhase();
+
+    public AttackResponseDto MakeAttack(AttackDto dto) => _gameService.MakeAttack(dto);
+
     private void MsgEvent(string msg, MessageType msgType)
     {
         OnMessage?.Invoke(msg, msgType);

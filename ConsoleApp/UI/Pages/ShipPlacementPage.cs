@@ -30,7 +30,10 @@ public class ShipPlacementPage : IPage
             new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
         );
 
-        return !_state.IsPlacementPhaseFinished ? new ShipPlacementPage(_controller, _state) : null;
+        if (!_state.IsPlacementPhaseFinished)
+            return new ShipPlacementPage(_controller, _state);
+        var attackState = _controller.StartAttackPhase();
+        return new TransitionPage(_controller, attackState);
     }
 
     private void Render()
