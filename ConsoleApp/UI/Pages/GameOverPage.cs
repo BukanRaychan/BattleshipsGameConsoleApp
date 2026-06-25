@@ -37,23 +37,28 @@ public class GameOverPage : IPage
         );
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine(
-            $"  [bold green]{Markup.Escape(_state.Winner!.Name)} wins![/]"
+            $"  [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)} wins![/]"
         );
         AnsiConsole.WriteLine();
 
-        var winnerPanel = new Panel(BuildBoard(_state.PlayerBoard, revealShips: true))
-            .Header($"[bold] {Markup.Escape(_state.Winner.Name)}'s Board [/]")
-            .BorderColor(Color.Green);
+        var winnerPanel = new Panel(BuildBoard(_state.PlayerBoard))
+            .Header($"[bold] {Markup.Escape(_state.CurrentPlayer.Name)}'s Board [/]")
+            .BorderColor(Color.Chartreuse1);
 
-        var loserPanel = new Panel(BuildBoard(_state.OpponentBoard, revealShips: true))
-            .Header("[bold] Opponent's Board [/]")
-            .BorderColor(Color.Red);
+        var loserPanel = new Panel(BuildBoard(_state.OpponentBoard))
+            .Header($"[bold] {Markup.Escape(_state.CurrentOpponent.Name)}'s Board [/]")
+            .BorderColor(Color.Red1);
 
-        AnsiConsole.Write(new Columns(winnerPanel, loserPanel));
+        var layout = new Table().NoBorder().HideHeaders();
+        layout.AddColumn(new TableColumn("").NoWrap());
+        layout.AddColumn(new TableColumn("").NoWrap());
+        layout.AddRow(winnerPanel, loserPanel);
+        AnsiConsole.Write(layout);
+
         AnsiConsole.WriteLine();
     }
 
-    private static Table BuildBoard(IBoard board, bool revealShips)
+    private static Table BuildBoard(IBoard board)
     {
         var table = new Table().NoBorder();
         table.AddColumn(new TableColumn("[dim]  [/]"));
@@ -64,21 +69,21 @@ public class GameOverPage : IPage
         {
             var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
             for (int x = 0; x < board.Size; x++)
-                row.Add(GetCellMarkup(board.Cell[x, y], revealShips));
+                row.Add(GetCellMarkup(board.Cell[x, y]));
             table.AddRow(row.ToArray());
         }
 
         return table;
     }
 
-    private static string GetCellMarkup(ICell cell, bool revealShips)
+    private static string GetCellMarkup(ICell cell)
     {
         return cell.ReceivedAttackResult switch
         {
             AttackResult.Sunk => "[bold red] ✕[/]",
             AttackResult.Hit  => "[red] ✕[/]",
             AttackResult.Miss => "[dim] ○[/]",
-            _ => revealShips && cell.Ship != null ? "[grey] ■[/]" : "[steelblue1] ·[/]"
+            _ => cell.Ship != null ? "[grey] ■[/]" : "[steelblue1] ·[/]"
         };
     }
 }

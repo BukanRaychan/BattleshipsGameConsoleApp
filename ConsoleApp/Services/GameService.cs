@@ -89,6 +89,69 @@ public class GameService : IGameService
         };
     }
 
+    /// <summary>Resets to player 0 and returns the initial attack-phase state with no prior attack.</summary>
+    public AttackResponseDto StartAttackPhase()
+    {
+        _indexCurrentPlayer = 0;
+        CurrentPlayer = _players[0];
+        var opponent = _players[1];
+        return new AttackResponseDto(
+            _playerBoard[CurrentPlayer],
+            _playerBoard[opponent],
+            CurrentPlayer,
+            opponent,
+            null, null, false
+        );
+    }
+
+    /// <summary>Resolves an attack on the opponent's board, switches turns, and returns the updated state.</summary>
+    public AttackResponseDto MakeAttack(AttackDto dto)
+    {
+        var attacker = CurrentPlayer!;
+        var opponent = _players.First(p => p != attacker);
+        var attackerBoard = _playerBoard[attacker];
+        var opponentBoard = _playerBoard[opponent];
+        var cell = opponentBoard.Cell[(int)dto.Target.X, (int)dto.Target.Y];
+
+        if (cell.ReceivedAttackResult != null)
+        {
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, cell.ReceivedAttackResult, false);
+        }
+
+        AttackResult result;
+        if (cell.Ship != null)
+        {
+            cell.ReceivedAttackResult = AttackResult.Hit;
+            var shipPlacement = cell.Ship.Placement!;
+            bool sunk = shipPlacement.All(c => c.ReceivedAttackResult != null);
+            if (sunk)
+            {
+                foreach (var c in shipPlacement)
+                    c.ReceivedAttackResult = AttackResult.Sunk;
+                result = AttackResult.Sunk;
+            }
+            else
+            {
+                result = AttackResult.Hit;
+            }
+        }
+        else
+        {
+            cell.ReceivedAttackResult = AttackResult.Miss;
+            result = AttackResult.Miss;
+        }
+
+        bool gameOver = _playerShips[opponent].All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
+        if (gameOver)
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker,opponent, dto.Target, result, true);
+
+        CurrentPlayer = opponent;
+        _indexCurrentPlayer = _players.IndexOf(opponent);
+        return new AttackResponseDto(_playerBoard[opponent], attackerBoard, opponent, attacker, dto.Target, result, false);
+    }
+
+    // ===== HELPER FUNCTION =====
+
     /// <summary>Moves the selected ship by (dx, dy); rejects the move if it goes out of bounds.</summary>
     private ShipPlacementResponseDto HandleShipPlacementMove(int dx, int dy, IBoard board)
     {
@@ -395,67 +458,5 @@ public class GameService : IGameService
         return ships;
     }
 
-    /// <summary>Resets to player 0 and returns the initial attack-phase state with no prior attack.</summary>
-    public AttackResponseDto StartAttackPhase()
-    {
-        _indexCurrentPlayer = 0;
-        CurrentPlayer = _players[0];
-        var opponent = _players[1];
-        return new AttackResponseDto(
-            _playerBoard[CurrentPlayer],
-            _playerBoard[opponent],
-            CurrentPlayer,
-            null, null, false, null
-        );
-    }
-
-    /// <summary>Resolves an attack on the opponent's board, switches turns, and returns the updated state.</summary>
-    public AttackResponseDto MakeAttack(AttackDto dto)
-    {
-        var attacker = CurrentPlayer!;
-        var opponent = _players.First(p => p != attacker);
-        var attackerBoard = _playerBoard[attacker];
-        var opponentBoard = _playerBoard[opponent];
-        var cell = opponentBoard.Cell[(int)dto.Target.X, (int)dto.Target.Y];
-
-        if (cell.ReceivedAttackResult != null)
-        {
-            _messageProvider?.Invoke("That cell was already attacked!", MessageType.Error);
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, dto.Target, cell.ReceivedAttackResult, false, null);
-        }
-
-        AttackResult result;
-        if (cell.Ship != null)
-        {
-            cell.ReceivedAttackResult = AttackResult.Hit;
-            var shipPlacement = cell.Ship.Placement!;
-            bool sunk = shipPlacement.All(c => c.ReceivedAttackResult != null);
-            if (sunk)
-            {
-                foreach (var c in shipPlacement)
-                    c.ReceivedAttackResult = AttackResult.Sunk;
-                result = AttackResult.Sunk;
-                _messageProvider?.Invoke($"{attacker.Name} sunk {opponent.Name}'s {cell.Ship.ShipType}!", MessageType.Info);
-            }
-            else
-            {
-                result = AttackResult.Hit;
-                _messageProvider?.Invoke($"{attacker.Name} scored a hit!", MessageType.Info);
-            }
-        }
-        else
-        {
-            cell.ReceivedAttackResult = AttackResult.Miss;
-            result = AttackResult.Miss;
-            _messageProvider?.Invoke($"{attacker.Name} missed.", MessageType.Info);
-        }
-
-        bool gameOver = _playerShips[opponent].All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
-        if (gameOver)
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, dto.Target, result, true, attacker);
-
-        CurrentPlayer = opponent;
-        _indexCurrentPlayer = _players.IndexOf(opponent);
-        return new AttackResponseDto(_playerBoard[opponent], attackerBoard, opponent, dto.Target, result, false, null);
-    }
+    
 }

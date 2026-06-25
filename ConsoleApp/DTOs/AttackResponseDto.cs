@@ -3,12 +3,12 @@ using ConsoleApp.Types;
 
 namespace ConsoleApp.DTOs;
 
-public record AttackResponseDto(
+public record AttackResponseDto (
     IBoard PlayerBoard,
     IBoard OpponentBoard,
     IPlayer CurrentPlayer,
+    IPlayer CurrentOpponent, 
     Coordinate? LastAttack,
     AttackResult? LastResult,
-    bool IsGameOver,
-    IPlayer? Winner
+    bool IsGameOver
 );

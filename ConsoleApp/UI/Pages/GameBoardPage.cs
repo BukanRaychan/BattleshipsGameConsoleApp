@@ -12,11 +12,11 @@ public class GameBoardPage : IPage
     private readonly AttackResponseDto _state;
     private Coordinate _cursor;
 
-    public GameBoardPage(GameController controller, AttackResponseDto state, Coordinate cursor = new())
+    public GameBoardPage(GameController controller, AttackResponseDto state, Coordinate? cursor = null)
     {
         _controller = controller;
         _state = state;
-        _cursor = cursor;
+        _cursor = cursor is null ? InitCursor() : (Coordinate) cursor!;
     }
 
     public IPage? Index()
@@ -25,27 +25,13 @@ public class GameBoardPage : IPage
 
         var key = Console.ReadKey(intercept: true).Key;
 
-        int x = (int)_cursor.X;
-        int y = (int)_cursor.Y;
-        int size = _state.OpponentBoard.Size;
-
         switch (key)
         {
             case ConsoleKey.W or ConsoleKey.UpArrow:
-                _cursor = y > 0 ? new Coordinate(_cursor.X, (VerticalLabel)(y - 1)) : _cursor;
-                return new GameBoardPage(_controller, _state, _cursor);
-
             case ConsoleKey.S or ConsoleKey.DownArrow:
-                _cursor = y < size - 1 ? new Coordinate(_cursor.X, (VerticalLabel)(y + 1)) : _cursor;
-                return new GameBoardPage(_controller, _state, _cursor);
-
             case ConsoleKey.A or ConsoleKey.LeftArrow:
-                _cursor = x > 0 ? new Coordinate((HorizontalLabel)(x - 1), _cursor.Y) : _cursor;
-                return new GameBoardPage(_controller, _state, _cursor);
-
             case ConsoleKey.D or ConsoleKey.RightArrow:
-                _cursor = x < size - 1 ? new Coordinate((HorizontalLabel)(x + 1), _cursor.Y) : _cursor;
-                return new GameBoardPage(_controller, _state, _cursor);
+                return new GameBoardPage(_controller, _state, MoveCursor(key));
 
             case ConsoleKey.F or ConsoleKey.Enter or ConsoleKey.Spacebar:
                 var result = _controller.MakeAttack(new AttackDto(_cursor));
@@ -61,24 +47,68 @@ public class GameBoardPage : IPage
         }
     }
 
+    private Coordinate InitCursor()
+    {
+        var board = _state.OpponentBoard;
+        int diagonals = board.Size * 2 - 1;
+
+        for (int d = 0; d < diagonals; d++)
+        {
+            int xStart = Math.Min(d, board.Size - 1);
+            int xEnd   = Math.Max(0, d - board.Size + 1);
+
+            for (int x = xStart; x >= xEnd; x--)
+            {
+                int y = d - x;
+                if (board.Cell[x, y].ReceivedAttackResult == null)
+                    return new Coordinate((HorizontalLabel)x, (VerticalLabel)y);
+            }
+        }
+
+        return new Coordinate();
+    }
+
+    private Coordinate MoveCursor(ConsoleKey key)
+    {
+        int dx = key is ConsoleKey.A or ConsoleKey.LeftArrow  ? -1 : key is ConsoleKey.D or ConsoleKey.RightArrow ? 1 : 0;
+        int dy = key is ConsoleKey.W or ConsoleKey.UpArrow    ? -1 : key is ConsoleKey.S or ConsoleKey.DownArrow  ? 1 : 0;
+
+        var board = _state.OpponentBoard;
+        int size  = board.Size;
+        int x = (int)_cursor.X + dx;
+        int y = (int)_cursor.Y + dy;
+
+        for (int step = 0; step < size; step++, x += dx, y += dy)
+        {
+            int wx = ((x % size) + size) % size;
+            int wy = ((y % size) + size) % size;
+
+            if (board.Cell[wx, wy].ReceivedAttackResult == null)
+                return new Coordinate((HorizontalLabel)wx, (VerticalLabel)wy);
+        }
+
+        return _cursor;
+    }
+
     private void Render()
     {
         AnsiConsole.Write(
             new Rule($"[bold yellow]BATTLESHIPS[/]  [dim]|[/]  [cyan]Battle Phase[/]")
                 .LeftJustified()
         );
+        Console.WriteLine();
         AnsiConsole.MarkupLine(
-            $"  [dim]Player:[/] [bold green]{Markup.Escape(_state.CurrentPlayer.Name)}[/]"
+            $"  [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]"
         );
         AnsiConsole.WriteLine();
 
         var opponentPanel = new Panel(BuildOpponentBoard())
-            .Header("[bold] Opponent [/]")
-            .BorderColor(Color.Red);
+            .Header("[bold] Opponent's Board [/]")
+            .BorderColor(Color.Red1);
 
         var ownPanel = new Panel(BuildOwnBoard())
             .Header("[bold] Your Board [/]")
-            .BorderColor(Color.Blue);
+            .BorderColor(Color.CornflowerBlue);
 
         var layout = new Table().NoBorder().HideHeaders();
         layout.AddColumn(new TableColumn("").NoWrap());
@@ -131,10 +161,10 @@ public class GameBoardPage : IPage
     {
         return cell.ReceivedAttackResult switch
         {
-            AttackResult.Sunk => "[bold red] ✕[/]",
-            AttackResult.Hit  => "[red] ✕[/]",
-            AttackResult.Miss => "[dim] ○[/]",
-            _ => cell.Ship != null ? "[grey] ■[/]" : "[steelblue1] ·[/]"
+            AttackResult.Sunk => "[bold red1] ✕[/]",
+            AttackResult.Hit  => "[red1] ✕[/]",
+            AttackResult.Miss => "[grey46] ○[/]",
+            _ => cell.Ship != null ? "[cornflowerblue] ■[/]" : "[steelblue1] ·[/]"
         };
     }
 
@@ -147,13 +177,15 @@ public class GameBoardPage : IPage
 
         return cell.ReceivedAttackResult switch
         {
-            AttackResult.Sunk => "[bold red] ✕[/]",
-            AttackResult.Hit  => "[red] ✕[/]",
-            AttackResult.Miss => "[dim] ○[/]",
+            AttackResult.Sunk => "[bold red1] ✕[/]",
+            AttackResult.Hit  => "[darkorange] ✕[/]",
+            AttackResult.Miss => "[grey46] ○[/]",
             _ => isCursor ? "[bold yellow] ▶[/]" : "[steelblue1] ·[/]"
         };
     }
 
+    
+    
     private static Panel BuildControls()
     {
         var grid = new Grid();
@@ -169,7 +201,7 @@ public class GameBoardPage : IPage
         grid.AddRow(
             "[bold yellow]D/→[/] Move Right   ",
             "[bold yellow]F/Enter[/] Fire      ",
-            "[red]Esc[/]   Exit to Menu"
+            "[red1]Esc[/]   Exit to Menu"
         );
 
         return new Panel(grid)

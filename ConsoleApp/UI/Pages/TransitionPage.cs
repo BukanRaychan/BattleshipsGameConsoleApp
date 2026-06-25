@@ -1,5 +1,6 @@
 using ConsoleApp.Controllers;
 using ConsoleApp.DTOs;
+using ConsoleApp.Models;
 using ConsoleApp.Types;
 using Spectre.Console;
 
@@ -24,37 +25,71 @@ public class TransitionPage : IPage
         );
         AnsiConsole.WriteLine();
 
-        if (_state.LastAttack != null && _state.LastResult != null)
+        if (_state.LastAttack.HasValue && _state.LastResult.HasValue)
         {
-            var (icon, color) = _state.LastResult switch
+            var (icon, color) = _state.LastResult.Value switch
             {
-                AttackResult.Sunk => ("💥", "red"),
+                AttackResult.Sunk => ("💥", "red1"),
                 AttackResult.Hit  => ("🎯", "darkorange"),
-                _                 => ("💨", "steelblue1"),
+                _                 => ("💨", "dodgerblue1"),
             };
 
             var coord = _state.LastAttack.Value;
             string col = ((int)coord.X + 1).ToString();
             string row = coord.Y.ToString();
 
-            // CurrentPlayer is already the NEXT player — the one who just attacked was the other one
-            // We need the previous attacker's name. Since we switched players, we can infer it:
-            // The previous attacker's board is now OpponentBoard.
             AnsiConsole.MarkupLine(
-                $"  {icon} [bold]Last attack:[/] [{color}]{Markup.Escape(_state.LastResult.Value.ToString())}[/] at [bold]{row}{col}[/]"
+                $"  {icon} [bold]Last attack:[/] [{color}]" +
+                $"{Markup.Escape(_state.LastResult.Value.ToString())}[/]" +
+                $" at [bold]{row}{col}[/]"
             );
+
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Write(
+            new Panel(BuildAttackedBoard())
+                .Header("[bold] Attack Board [/]")
+                .BorderColor(Color.Orange1)
+            );
+
             AnsiConsole.WriteLine();
         }
 
-        AnsiConsole.Write(
-            new Rule($"[bold green]{Markup.Escape(_state.CurrentPlayer.Name)}'s turn[/]")
-                .LeftJustified()
-        );
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("  [dim]Make sure the other player isn't looking, then press any key when ready...[/]");
+        AnsiConsole.MarkupLine($"[dim]→[/]  [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}'s turn[/]");
+        AnsiConsole.MarkupLine($"   [dim]Make sure {Markup.Escape(_state.CurrentOpponent.Name)} isn't looking, then press any key when ready...[/]");
         AnsiConsole.WriteLine();
 
         Console.ReadKey(intercept: true);
         return new GameBoardPage(_controller, _state);
+    }
+
+    private Table BuildAttackedBoard()
+    {
+        var board = _state.PlayerBoard;
+        var table = new Table().NoBorder();
+        table.AddColumn(new TableColumn("[dim]  [/]"));
+        for (int x = 0; x < board.Size; x++)
+            table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+
+        for (int y = 0; y < board.Size; y++)
+        {
+            var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            for (int x = 0; x < board.Size; x++)
+                row.Add(GetCellMarkup(board.Cell[x, y]));
+            table.AddRow(row.ToArray());
+        }
+
+        return table;
+    }
+
+    private string GetCellMarkup(ICell cell)
+    {
+        return cell.ReceivedAttackResult switch
+        {
+            AttackResult.Sunk => "[bold red1] ✕[/]",
+            AttackResult.Hit  => "[darkorange] ✕[/]",
+            AttackResult.Miss => "[grey46] ○[/]",
+            _ => "[steelblue1] ·[/]"
+        };
     }
 }

@@ -32,7 +32,9 @@ public class ShipPlacementPage : IPage
 
         if (!_state.IsPlacementPhaseFinished)
             return new ShipPlacementPage(_controller, _state);
+
         var attackState = _controller.StartAttackPhase();
+        
         return new TransitionPage(_controller, attackState);
     }
 
@@ -42,24 +44,29 @@ public class ShipPlacementPage : IPage
             new Rule($"[bold yellow]BATTLESHIPS[/]  [dim]|[/]  [cyan]Ship Placement[/]")
                 .LeftJustified()
         );
+        Console.WriteLine();
         AnsiConsole.MarkupLine(
-            $"  [dim]Player:[/] [bold green]{Markup.Escape(_state.CurrentPlayer.Name)}[/]  " +
+            $"  [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]  " +
             $"[dim]|[/]  " +
             (_state.IsValidPlacement
-                ? "[green]✓ Valid placement[/]"
-                : "[red]✗ Invalid placement[/]")
+                ? "[chartreuse1]✓ Valid placement[/]"
+                : "[red1]✗ Invalid placement[/]")
         );
         AnsiConsole.WriteLine();
 
         var boardPanel = new Panel(BuildBoard())
             .Header("[bold] Board [/]")
-            .BorderColor(Color.Blue);
+            .BorderColor(Color.CornflowerBlue);
 
         var shipPanel = new Panel(BuildShipList())
             .Header("[bold] Ships [/]")
-            .BorderColor(Color.Blue);
+            .BorderColor(Color.CornflowerBlue);
 
-        AnsiConsole.Write(new Columns(boardPanel, shipPanel));
+        var layout = new Table().NoBorder().HideHeaders();
+        layout.AddColumn(new TableColumn("").NoWrap());
+        layout.AddColumn(new TableColumn("").NoWrap());
+        layout.AddRow(boardPanel, shipPanel);
+        AnsiConsole.Write(layout);
         AnsiConsole.WriteLine();
         AnsiConsole.Write(BuildControls());
     }
@@ -122,15 +129,15 @@ public class ShipPlacementPage : IPage
 
         if (isSelected)
         {
-            string color = _state.IsValidPlacement ? "green" : "red";
+            string color = _state.IsValidPlacement ? "chartreuse1" : "red1";
             return  $"[{color}] ■[/]";
         }
 
         if (isSurrounding)
-            return cell.Ship != null ? "[bold red] ■[/]" : "[dim green] ·[/]";
+            return cell.Ship != null ? "[bold red1] ■[/]" : "[dim green] ·[/]";
 
         if (cell.Ship != null)
-            return "[grey] ■[/]";
+            return "[cornflowerblue] ■[/]";
 
         return "[steelblue1] ·[/]";
     }
@@ -151,17 +158,17 @@ public class ShipPlacementPage : IPage
 
             if (isSelected)
             {
-                string color = _state.IsValidPlacement ? "green" : "red";
+                string color = _state.IsValidPlacement ? "chartreuse1" : "red1";
                 table.AddRow(
                     $"[bold yellow] ▶ {name}[/] [dim]({length})[/]\n" +
-                    $"   [{color}]{filled}[grey]{empty}[/][/]  [dim]{orient}[/]"
+                    $"   [{color}]{filled}[/][dim grey42]{empty}[/]  [dim]{orient}[/]"
                 );
             }
             else
             {
                 table.AddRow(
-                    $"[dim]   {name} ({length})\n" +
-                    $"   {filled}{empty}[/]"
+                    $"[dim]   {name} ({length})[/]\n" +
+                    $"   [dim cornflowerblue]{filled}[/][dim grey42]{empty}[/]"
                 );
             }
         }
@@ -190,10 +197,9 @@ public class ShipPlacementPage : IPage
             "[bold yellow]C  [/]  Confirm     "
         );
         grid.AddRow(
-            "[bold yellow]Z  [/] Undo (max 5) ",
-            "[bold yellow]X  [/] Redo         ",
-            "[dim]* Can't switch ship if invalid[/]",
-            "[red]Esc[/]  Exit to Menu "
+            "[bold yellow]Z  [/] Undo",
+            "[bold yellow]X  [/] Redo",
+            "[red1]Esc[/]  Exit to Menu "
         );
 
         return new Panel(grid)

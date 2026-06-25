@@ -20,8 +20,8 @@ public class GameLayout
     public IPage? Render(IPage page)
     {
         AnsiConsole.Clear();
-        AnsiConsole.WriteLine();AnsiConsole.WriteLine();
-        AnsiConsole.Markup("""
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("""
  [bold white]____              __    __    ___                   __                      ____
 /\  _`\           /\ \__/\ \__/\_ \                 /\ \      __            /\  _`\
 \ \ \L\ \     __  \ \ ,_\ \ ,_\//\ \      __    ____\ \ \___ /\_\  _____    \ \ \L\_\     __      ___ ___      __
@@ -42,13 +42,9 @@ public class GameLayout
                 MessageType.Error => ("✗", "red1"),
                 _                 => ("·", "grey")
             };
-            AnsiConsole.Write(
-                new Rule($"[bold {color}]{icon}  {Markup.Escape(_eventMsg)}[/]")
-                    .LeftJustified()
-                    .RuleStyle(Style.Parse($"dim {color}"))
-            );
+            AnsiConsole.MarkupLine($"[bold {color}]{icon}  {Markup.Escape(_eventMsg)}[/]");
             ClearEventMsg();
-        } else AnsiConsole.WriteLine();
+        };
 
         AnsiConsole.WriteLine();
         

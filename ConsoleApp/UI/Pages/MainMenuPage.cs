@@ -20,10 +20,14 @@ public class MainMenuPage : IPage
 
     public IPage? Index()
     {
+        AnsiConsole.Write(
+            new Rule($"[bold yellow]BATTLESHIPS[/]  [dim]|[/]  [cyan]Main Menu[/]")
+                .LeftJustified()
+        );
+        Console.WriteLine();
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<Action>()
-                .Title("Main Menu")
-                .HighlightStyle(new Style(Color.White, Color.DarkGreen, Decoration.Bold))
+                .HighlightStyle(new Style(Color.Black, Color.Chartreuse1, Decoration.Bold))
                 .AddChoices(Action.Enter_Game, Action.Quit));
 
         return action switch
