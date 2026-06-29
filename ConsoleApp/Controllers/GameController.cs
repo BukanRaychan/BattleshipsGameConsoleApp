@@ -16,14 +16,11 @@ public class GameController
         return _gameService.StartShipPlacementPhase(dto);
     }
 
-    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto)
-    {
-        return _gameService!.EditShipPlacement(dto);
-    }
+    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto) => _gameService!.EditShipPlacement(dto);
 
     public AttackResponseDto StartAttackPhase() => _gameService!.StartAttackPhase();
 
-    public AttackResponseDto MakeAttack(AttackDto dto) => _gameService!.MakeAttack(dto);
+    public AttackResponseDto Attack(AttackDto dto) => _gameService!.Attack(dto);
 
     private void MsgEvent(string msg, MessageType msgType)
     {

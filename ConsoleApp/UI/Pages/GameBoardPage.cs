@@ -11,39 +11,45 @@ public class GameBoardPage : IPage
     private readonly GameController _controller;
     private readonly AttackResponseDto _state;
     private Coordinate _cursor;
+    private (int x, int y) _opponentsBoardsStartCoordinate;
 
-    public GameBoardPage(GameController controller, AttackResponseDto state, Coordinate? cursor = null)
+    public GameBoardPage(GameController controller, AttackResponseDto state)
     {
         _controller = controller;
         _state = state;
-        _cursor = cursor is null ? InitCursor() : (Coordinate) cursor!;
+        _cursor = InitCursor();
     }
 
     public IPage? Index()
     {
         Render();
 
-        var key = Console.ReadKey(intercept: true).Key;
-
-        switch (key)
+        while (true)
         {
-            case ConsoleKey.W or ConsoleKey.UpArrow:
-            case ConsoleKey.S or ConsoleKey.DownArrow:
-            case ConsoleKey.A or ConsoleKey.LeftArrow:
-            case ConsoleKey.D or ConsoleKey.RightArrow:
-                return new GameBoardPage(_controller, _state, MoveCursor(key));
+            var key = Console.ReadKey(intercept: true).Key;
 
-            case ConsoleKey.F or ConsoleKey.Enter or ConsoleKey.Spacebar:
-                var result = _controller.MakeAttack(new AttackDto(_cursor));
-                return result.IsGameOver
-                    ? new GameOverPage(_controller, result)
-                    : new TransitionPage(_controller, result);
+            switch (key)
+            {
+                case ConsoleKey.W or ConsoleKey.UpArrow:
+                case ConsoleKey.S or ConsoleKey.DownArrow:
+                case ConsoleKey.A or ConsoleKey.LeftArrow:
+                case ConsoleKey.D or ConsoleKey.RightArrow:
+                    Console.SetCursorPosition(_opponentsBoardsStartCoordinate.x + (int)_cursor.X * 3, _opponentsBoardsStartCoordinate.y + (int)_cursor.Y);
+                    AnsiConsole.Markup("[steelblue1]·[/]");
+                    _cursor = MoveCursor(key);
+                    Console.SetCursorPosition(_opponentsBoardsStartCoordinate.x + (int)_cursor.X * 3, _opponentsBoardsStartCoordinate.y + (int)_cursor.Y);
+                    AnsiConsole.Markup("[bold yellow]▶[/]");
+                    break;
 
-            case ConsoleKey.Escape:
-                return new MainMenuPage(_controller);
+                case ConsoleKey.F or ConsoleKey.Enter or ConsoleKey.Spacebar:
+                    var result = _controller.Attack(new AttackDto(_cursor));
+                    return result.IsGameOver
+                        ? new GameOverPage(_controller, result)
+                        : new TransitionPage(_controller, result);
 
-            default:
-                return new GameBoardPage(_controller, _state, _cursor);
+                case ConsoleKey.Escape:
+                    return new MainMenuPage(_controller);
+            }
         }
     }
 
@@ -102,6 +108,15 @@ public class GameBoardPage : IPage
         );
         AnsiConsole.WriteLine();
 
+        _opponentsBoardsStartCoordinate = (6, Console.CursorTop + 2);
+        RenderBoards();
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(BuildControls());
+    }
+
+    private void RenderBoards()
+    {
         var opponentPanel = new Panel(BuildOpponentBoard())
             .Header("[bold] Opponent's Board [/]")
             .BorderColor(Color.Red1);
@@ -115,8 +130,6 @@ public class GameBoardPage : IPage
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddRow(opponentPanel, ownPanel);
         AnsiConsole.Write(layout);
-        AnsiConsole.WriteLine();
-        AnsiConsole.Write(BuildControls());
     }
 
     private Table BuildOwnBoard()
@@ -184,8 +197,6 @@ public class GameBoardPage : IPage
         };
     }
 
-    
-    
     private static Panel BuildControls()
     {
         var grid = new Grid();

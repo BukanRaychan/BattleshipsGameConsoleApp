@@ -105,52 +105,72 @@ public class GameService : IGameService
     }
 
     /// <summary>Resolves an attack on the opponent's board, switches turns, and returns the updated state.</summary>
-    public AttackResponseDto MakeAttack(AttackDto dto)
+    public AttackResponseDto Attack(AttackDto dto)
     {
         var attacker = CurrentPlayer!;
-        var opponent = _players.First(p => p != attacker);
+        var opponent = GetOpponent(attacker);
         var attackerBoard = _playerBoard[attacker];
         var opponentBoard = _playerBoard[opponent];
-        var cell = opponentBoard.Cell[(int)dto.Target.X, (int)dto.Target.Y];
 
-        if (cell.ReceivedAttackResult != null)
+        if (!ValidateAttack(opponentBoard, dto.Target))
         {
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, cell.ReceivedAttackResult, false);
+            var existingResult = opponentBoard.Cell[(int)dto.Target.X, (int)dto.Target.Y].ReceivedAttackResult;
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, existingResult, false);
         }
 
-        AttackResult result;
-        if (cell.Ship != null)
-        {
-            cell.ReceivedAttackResult = AttackResult.Hit;
-            var shipPlacement = cell.Ship.Placement!;
-            bool sunk = shipPlacement.All(c => c.ReceivedAttackResult != null);
-            if (sunk)
-            {
-                foreach (var c in shipPlacement)
-                    c.ReceivedAttackResult = AttackResult.Sunk;
-                result = AttackResult.Sunk;
-            }
-            else
-            {
-                result = AttackResult.Hit;
-            }
-        }
-        else
-        {
-            cell.ReceivedAttackResult = AttackResult.Miss;
-            result = AttackResult.Miss;
-        }
+        var result = ReceiveAttack(opponentBoard, dto.Target);
 
-        bool gameOver = _playerShips[opponent].All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
-        if (gameOver)
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker,opponent, dto.Target, result, true);
+        if (IsAllShipsOnBoardSunk(_playerShips[opponent]))
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, result, true);
 
-        CurrentPlayer = opponent;
-        _indexCurrentPlayer = _players.IndexOf(opponent);
-        return new AttackResponseDto(_playerBoard[opponent], attackerBoard, opponent, attacker, dto.Target, result, false);
+        SwitchTurn();
+        var newOpponent = GetOpponent(CurrentPlayer!);
+        return new AttackResponseDto(_playerBoard[CurrentPlayer!], _playerBoard[newOpponent], CurrentPlayer!, newOpponent, dto.Target, result, false);
     }
 
     // ===== HELPER FUNCTION =====
+
+    /// <summary>Check if the all of the player's ships is sunk</summary>
+    private static bool IsAllShipsOnBoardSunk(List<IShip> ship) => ship.All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
+
+    private IPlayer GetOpponent(IPlayer player) => _players.First(p => p != player);
+
+    private void SwitchTurn()
+    {
+        CurrentPlayer = GetOpponent(CurrentPlayer!);
+        _indexCurrentPlayer = _players.IndexOf(CurrentPlayer);
+    }
+
+    private static bool ValidateAttack(IBoard board, Coordinate coordinate) =>
+        board.Cell[(int)coordinate.X, (int)coordinate.Y].ReceivedAttackResult == null;
+
+    private AttackResult ReceiveAttack(IBoard receiverBoard, Coordinate coordinate)
+    {
+        var cell = receiverBoard.Cell[(int)coordinate.X, (int)coordinate.Y];
+        var ship = GetShipAtCoordinate(receiverBoard, coordinate);
+        if (ship == null)
+        {
+            cell.ReceivedAttackResult = AttackResult.Miss;
+            return AttackResult.Miss;
+        }
+        cell.ReceivedAttackResult = AttackResult.Hit;
+        RecordShipHit(ship);
+        return cell.ReceivedAttackResult == AttackResult.Sunk ? AttackResult.Sunk : AttackResult.Hit;
+    }
+
+    private static void RecordShipHit(IShip ship)
+    {
+        var placement = ship.Placement!;
+        if (placement.All(c => c.ReceivedAttackResult != null))
+            foreach (var c in placement)
+                c.ReceivedAttackResult = AttackResult.Sunk;
+    }
+
+    private static IShip? GetShipAtCoordinate(IBoard board, Coordinate coordinate) =>
+        board.Cell[(int)coordinate.X, (int)coordinate.Y].Ship;
+
+    private static Coordinate GetCoordinate(VerticalLabel verticalLabel, HorizontalLabel horizontalLabel) =>
+        new(horizontalLabel, verticalLabel);
 
     /// <summary>Moves the selected ship by (dx, dy); rejects the move if it goes out of bounds.</summary>
     private ShipPlacementResponseDto HandleShipPlacementMove(int dx, int dy, IBoard board)

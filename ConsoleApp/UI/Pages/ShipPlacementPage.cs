@@ -10,6 +10,7 @@ public class ShipPlacementPage : IPage
 {
     private readonly GameController _controller;
     private ShipPlacementResponseDto _state;
+    private int _sectionRow;
 
     public ShipPlacementPage(GameController controller, ShipPlacementResponseDto state)
     {
@@ -21,21 +22,26 @@ public class ShipPlacementPage : IPage
     {
         Render();
 
-        var key = Console.ReadKey(intercept: false).Key;
+        while (true)
+        {
+            var key = Console.ReadKey(intercept: true).Key;
 
-        if (key == ConsoleKey.Escape)
-            return new MainMenuPage(_controller);
+            if (key == ConsoleKey.Escape)
+                return new MainMenuPage(_controller);
 
-        _state = _controller.EditShipPlacement(
-            new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
-        );
+            _state = _controller.EditShipPlacement(
+                new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
+            );
 
-        if (!_state.IsPlacementPhaseFinished)
-            return new ShipPlacementPage(_controller, _state);
+            if (_state.IsPlacementPhaseFinished)
+            {
+                var attackState = _controller.StartAttackPhase();
+                return new TransitionPage(_controller, attackState);
+            }
 
-        var attackState = _controller.StartAttackPhase();
-        
-        return new TransitionPage(_controller, attackState);
+            Console.SetCursorPosition(0, _sectionRow);
+            RenderSection();
+        }
     }
 
     private void Render()
@@ -45,11 +51,21 @@ public class ShipPlacementPage : IPage
                 .LeftJustified()
         );
         Console.WriteLine();
+
+        _sectionRow = Console.CursorTop;
+        RenderSection();
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(BuildControls());
+    }
+
+    private void RenderSection()
+    {
         AnsiConsole.MarkupLine(
             $"  [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]  " +
             $"[dim]|[/]  " +
             (_state.IsValidPlacement
-                ? "[chartreuse1]✓ Valid placement[/]"
+                ? "[chartreuse1]✓ Valid placement  [/]"
                 : "[red1]✗ Invalid placement[/]")
         );
         AnsiConsole.WriteLine();
@@ -67,20 +83,16 @@ public class ShipPlacementPage : IPage
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddRow(boardPanel, shipPanel);
         AnsiConsole.Write(layout);
-        AnsiConsole.WriteLine();
-        AnsiConsole.Write(BuildControls());
     }
 
     private Table BuildBoard()
     {
         var board = _state.Board;
 
-        // Precompute selected ship's cell positions
         var selectedSet = _state.SelectedShip!.Placement!
             .Select(c => ((int)c.Coordinate.X, (int)c.Coordinate.Y))
             .ToHashSet();
 
-        // Compute 1-cell surrounding zone around the selected ship
         var surroundingZone = new HashSet<(int x, int y)>();
         if (selectedSet.Count > 0)
         {
@@ -107,10 +119,7 @@ public class ShipPlacementPage : IPage
             var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
 
             for (int x = 0; x < board.Size; x++)
-            {
-                var coord = new Coordinate((HorizontalLabel)x, (VerticalLabel)y);
                 row.Add(GetCellMarkup(board.Cell[x, y], x, y, selectedSet, surroundingZone));
-            }
 
             table.AddRow(row.ToArray());
         }
@@ -123,7 +132,6 @@ public class ShipPlacementPage : IPage
         HashSet<(int, int)> selectedSet,
         HashSet<(int x, int y)> surroundingZone)
     {
-        bool isCursor = x == (int)_state.IndexPlayerCursor.X && y == (int)_state.IndexPlayerCursor.Y;
         bool isSelected = selectedSet.Contains((x, y));
         bool isSurrounding = surroundingZone.Contains((x, y));
 

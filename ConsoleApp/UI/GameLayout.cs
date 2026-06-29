@@ -47,8 +47,10 @@ public class GameLayout
         };
 
         AnsiConsole.WriteLine();
-        
+
+        Console.CursorVisible = false;
         IPage? next = page.Index();
+        Console.CursorVisible = true;
         return next;
     }
 

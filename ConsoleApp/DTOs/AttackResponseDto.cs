@@ -7,7 +7,7 @@ public record AttackResponseDto (
     IBoard PlayerBoard,
     IBoard OpponentBoard,
     IPlayer CurrentPlayer,
-    IPlayer CurrentOpponent, 
+    IPlayer CurrentOpponent,
     Coordinate? LastAttack,
     AttackResult? LastResult,
     bool IsGameOver

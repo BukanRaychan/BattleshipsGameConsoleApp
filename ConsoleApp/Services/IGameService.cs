@@ -9,5 +9,5 @@ public interface IGameService
     public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto);
     public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto);
     public AttackResponseDto StartAttackPhase();
-    public AttackResponseDto MakeAttack(AttackDto dto);
+    public AttackResponseDto Attack(AttackDto dto);
 }
