@@ -7,22 +7,51 @@ namespace ConsoleApp.UI;
 
 public class GameLayout
 {
-    private string _eventMsg = "";
-    private MessageType _eventMsgType = default;
     private readonly GameController _controller;
-
-    private readonly (int x, int y) _startCursor;
 
     public GameLayout(GameController gameController)
     {
         _controller = gameController;
-        _controller.OnMessage += (msg, msgType) => { _eventMsg = msg; _eventMsgType = msgType; };
+        _controller.OnMessage += ShowEventMessage;
     }
 
     public IPage? Render(IPage page)
     {
-
         AnsiConsole.Clear();
+        PrintHeader();
+        AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine();
+        Console.CursorVisible = false;
+        IPage? next = page.Index();
+        Console.CursorVisible = true;
+        return next;
+    }
+
+    private void ShowEventMessage(string msg = "", MessageType msgType = default)
+    {
+        Console.SetCursorPosition(0, 0);
+        PrintHeader();
+        if (msg != "")
+        {
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, Console.CursorTop);
+            (string icon, string color) = msgType switch
+            {
+                MessageType.Info  => ("ℹ", "dodgerblue2"),
+                MessageType.Debug => ("⚙", "gold1"),
+                MessageType.Error => ("✗", "red1"),
+                _                 => ("·", "grey")
+            };
+            AnsiConsole.Markup($"[bold {color}]{icon}  {Markup.Escape(msg)}[/]");
+        } else
+        { 
+            Console.Write(new string(' ', Console.WindowWidth));
+        }
+        ;
+    }
+
+    private void PrintHeader()
+    {
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("""
  [bold white]____              __    __    ___                   __                      ____
@@ -36,29 +65,6 @@ public class GameLayout
                                                                       \/_/[/]
 """);
         AnsiConsole.WriteLine();
-        
-        /*
-        if (_eventMsg != "")
-        {
-            (string icon, string color) = _eventMsgType switch
-            {
-                MessageType.Info  => ("ℹ", "dodgerblue2"),
-                MessageType.Debug => ("⚙", "gold1"),
-                MessageType.Error => ("✗", "red1"),
-                _                 => ("·", "grey")
-            };
-            AnsiConsole.MarkupLine($"[bold {color}]{icon}  {Markup.Escape(_eventMsg)}[/]");
-            ClearEventMsg();
-        };
-        */
-
-        AnsiConsole.WriteLine();
-
-        Console.CursorVisible = false;
-        IPage? next = page.Index();
-        Console.CursorVisible = true;
-        return next;
     }
 
-    private void ClearEventMsg() { _eventMsg = ""; _eventMsgType = default; }
 }

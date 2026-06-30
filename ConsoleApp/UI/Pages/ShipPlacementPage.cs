@@ -77,10 +77,12 @@ public class ShipPlacementPage : IPage
         Panel boardPanel = new Panel(BuildBoard())
             .Header("[bold] Board [/]")
             .BorderColor(Color.CornflowerBlue);
+        boardPanel.Expand = false;
 
         Panel shipPanel = new Panel(BuildShipList())
             .Header("[bold] Ships [/]")
             .BorderColor(Color.CornflowerBlue);
+        shipPanel.Expand = false;
 
         Table layout = new Table().NoBorder().HideHeaders();
         layout.AddColumn(new TableColumn("").NoWrap());
@@ -115,16 +117,18 @@ public class ShipPlacementPage : IPage
             }
         }
 
-        Table table = new Table().NoBorder();
-        table.AddColumn(new TableColumn("[dim]  [/]"));
+        Table table = new Table().NoBorder().Collapse();
+        table.AddColumn(new TableColumn("[dim]  [/]") { Padding = new Padding(0, 0, 0, 0) });
         for (int x = 0; x < board.Size; x++)
         {
-            table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+            table.AddColumn(
+                new TableColumn($"[dim]{x + 1,2}[/]") { Padding = new Padding(0, 0, 0, 0) }.Centered()
+            );
         }
 
         for (int y = 0; y < board.Size; y++)
         {
-            List<string> row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            List<string> row = [$"[dim]{(VerticalLabel)y} [/]"];
 
             for (int x = 0; x < board.Size; x++)
             {
@@ -176,7 +180,7 @@ public class ShipPlacementPage : IPage
             string name = ship.ShipType.ToString();
             string orient = ship.Orientation == Orientation.Vertical ? "↕ Vertical  " : "↔ Horizontal";
             string filled = new string('■', length);
-            string empty  = new string('·', 5 - length);
+            string empty = new string('·', 5 - length);
 
             if (isSelected)
             {

@@ -93,6 +93,7 @@ public class GameService : IGameService
         _selectedShip = editShipPlacementDto.CurrentShip;
         _indexPlayerCursor = editShipPlacementDto.IndexPlayerCursor;
 
+        OnMessage?.Invoke(); //Clear Message
         ShipPlacementResponseDto response = editShipPlacementDto.KeyEvent switch
         {
             ConsoleKey.Q                                  => HandlePrevShip(ships, board),
@@ -291,7 +292,7 @@ public class GameService : IGameService
             OnMessage?.Invoke("Invalid placement — the ship must not overlap with or be within 1 cell of another ship. Cannot proceed to select the next ship.", MessageType.Error);
             ShipPlacementResponseDto invalidResponse = BuildResponse(board, ships);
             return invalidResponse;
-        }
+        } 
 
         LandShip(_selectedShip!);
 
@@ -373,7 +374,7 @@ public class GameService : IGameService
             OnMessage?.Invoke("Invalid placement — the ship must not overlap with or be within 1 cell of another ship. Cannot proceed to confirmation step.", MessageType.Error);
             ShipPlacementResponseDto invalidResponse = BuildResponse(board, ships);
             return invalidResponse;
-        }
+        } 
 
         LandShip(_selectedShip!);
 
