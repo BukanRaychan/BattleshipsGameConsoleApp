@@ -76,15 +76,15 @@ public class GameBoardPage : IPage
 
     private Coordinate MoveCursor(ConsoleKey key)
     {
-        int dx = key is ConsoleKey.A or ConsoleKey.LeftArrow  ? -1 : key is ConsoleKey.D or ConsoleKey.RightArrow ? 1 : 0;
-        int dy = key is ConsoleKey.W or ConsoleKey.UpArrow    ? -1 : key is ConsoleKey.S or ConsoleKey.DownArrow  ? 1 : 0;
+        int destinationX = key is ConsoleKey.A or ConsoleKey.LeftArrow  ? -1 : key is ConsoleKey.D or ConsoleKey.RightArrow ? 1 : 0;
+        int destinationY = key is ConsoleKey.W or ConsoleKey.UpArrow    ? -1 : key is ConsoleKey.S or ConsoleKey.DownArrow  ? 1 : 0;
 
         var board = _state.OpponentBoard;
         int size  = board.Size;
-        int x = (int)_cursor.X + dx;
-        int y = (int)_cursor.Y + dy;
+        int x = (int)_cursor.X + destinationX;
+        int y = (int)_cursor.Y + destinationY;
 
-        for (int step = 0; step < size; step++, x += dx, y += dy)
+        for (int step = 0; step < size; step++, x += destinationX, y += destinationY)
         {
             int wx = ((x % size) + size) % size;
             int wy = ((y % size) + size) % size;

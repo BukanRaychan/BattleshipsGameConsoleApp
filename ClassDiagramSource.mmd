@@ -1,5 +1,6 @@
 classDiagram
-direction TB
+    direction TB
+
     class ShipDetail {
         Type: ShipType
         Size: int
@@ -101,7 +102,7 @@ direction TB
         +Action~IPlayer~? OnGameEnded
         +GameController(List~IPlayer~ players, List~IBoard~ Boards)
         +StartGame() void
-        
+
         +PlaceShip(IPlayer player, IShip ship, Coordinate startCoordinate, Coordinate endCoordinate) bool
         +Attack(IPlayer player, IBoard targetBoard, Coordinate coordinate) AttackResult
         +GetPlayers() List~IPlayer~
@@ -119,7 +120,6 @@ direction TB
         -ValidateAttack(IBoard board, Coordinate coordinate) bool
         -ValidateShipPlacement(IBoard board, IShip ship, Coordinate startCoordinate, Coordinate endCoordinate) bool
     }
-
 
     <<Enum>> ShipType
     <<Enum>> AttackResult

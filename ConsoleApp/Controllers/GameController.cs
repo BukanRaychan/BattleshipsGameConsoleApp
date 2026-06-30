@@ -10,17 +10,17 @@ public class GameController
     private IGameService? _gameService; 
     public event MessageDelegate? OnMessage;
 
-    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto)
+    public ShipPlacementResponseDto PlaceShip(StartPlacementPhaseDto startPlacementPhaseDto)
     {
         _gameService = new GameService(MsgEvent);
-        return _gameService.StartShipPlacementPhase(dto);
+        return _gameService.StartShipPlacementPhase(startPlacementPhaseDto);
     }
 
-    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto) => _gameService!.EditShipPlacement(dto);
+    public ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto) => _gameService!.PlaceShip(editShipPlacementDto);
 
     public AttackResponseDto StartAttackPhase() => _gameService!.StartAttackPhase();
 
-    public AttackResponseDto Attack(AttackDto dto) => _gameService!.Attack(dto);
+    public AttackResponseDto Attack(AttackDto attackDto) => _gameService!.Attack(attackDto);
 
     private void MsgEvent(string msg, MessageType msgType)
     {

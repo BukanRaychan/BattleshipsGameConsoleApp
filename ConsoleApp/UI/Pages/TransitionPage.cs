@@ -56,7 +56,7 @@ public class TransitionPage : IPage
         }
 
         AnsiConsole.MarkupLine($"[dim]→[/]  [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}'s turn[/]");
-        AnsiConsole.MarkupLine($"   [dim]Make sure {Markup.Escape(_state.CurrentOpponent.Name)} isn't looking, then press any key when ready...[/]");
+        AnsiConsole.MarkupLine($"   [dim]Make sure {Markup.Escape(_state.CurrentOpponent.Name)} isn't looking, then press any key when readestinationY...[/]");
         AnsiConsole.WriteLine();
 
         Console.ReadKey(intercept: true);

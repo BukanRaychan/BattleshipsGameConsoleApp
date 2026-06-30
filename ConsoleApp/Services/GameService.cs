@@ -6,18 +6,29 @@ namespace ConsoleApp.Services;
 
 public class GameService : IGameService
 {
+    /// <summary>Ordered list of players in the game.</summary>
     private List<IPlayer> _players;
+    /// <summary>Maps each player to their own board.</summary>
     private readonly Dictionary<IPlayer, IBoard> _playerBoard;
+    /// <summary>Maps each player to their fleet of ships.</summary>
     private readonly Dictionary<IPlayer, List<IShip>> _playerShips;
-    public IPlayer? CurrentPlayer { get; set; }
-    private int _indexCurrentPlayer = 0;
-    private IShip? _selectedShip;
-    private Coordinate _indexPlayerCursor;
-    private readonly List<PlacementState> _undoStack = [];
-    private readonly List<PlacementState> _redoStack = [];
-    private const int MaxUndoSteps = 5;
+    /// <summary>Delegate used to surface game messages to the UI layer.</summary>
     private MessageDelegate _messageProvider;
-
+    /// <summary>The player whose turn it currently is.</summary>
+    public IPlayer? CurrentPlayer { get; set; }
+    /// <summary>Index into <see cref="_players"/> for the current player.</summary>
+    private int _indexCurrentPlayer = 0;
+    /// <summary>The ship currently being moved or rotated during placement.</summary>
+    private IShip? _selectedShip;
+    /// <summary>Board coordinate of the anchor point for the selected ship.</summary>
+    private Coordinate _indexPlayerCursor;
+    /// <summary>Placement states available to undo, capped at <see cref="MaxUndoSteps"/>.</summary>
+    private readonly List<PlacementState> _undoStack = [];
+    /// <summary>Placement states available to redo after an undo.</summary>
+    private readonly List<PlacementState> _redoStack = [];
+    /// <summary>Maximum number of undo steps retained.</summary>
+    private const int MaxUndoSteps = 5;
+    /// <summary>Undo/Redo list of element state</summary>
     private record PlacementState(
         List<(IShip Ship, List<Coordinate> Coords, Orientation Orientation)> ShipStates,
         int SelectedShipIndex,
@@ -35,13 +46,13 @@ public class GameService : IGameService
     }
 
     /// <summary>Sets up players, boards, and default ship positions; lifts the first ship for placement.</summary>
-    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto dto)
+    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto startPlacementPhaseDto)
     {
-        _players.AddRange([new Player(dto.PlayerOneName), new Player(dto.PlayerTwoName)]);
+        _players.AddRange([new Player(startPlacementPhaseDto.PlayerOneName), new Player(startPlacementPhaseDto.PlayerTwoName)]);
 
         foreach (var player in _players)
         {
-            var board = new Board(dto.BoardSize);
+            var board = new Board(startPlacementPhaseDto.BoardSize, GenerateCells(startPlacementPhaseDto.BoardSize));
             _playerBoard[player] = board;
             _playerShips[player] = PlaceShipsDefault(board);
         }
@@ -66,14 +77,14 @@ public class GameService : IGameService
     }
 
     /// <summary>Dispatches a key event to the appropriate placement handler and returns the updated state.</summary>
-    public ShipPlacementResponseDto EditShipPlacement(EditShipPlacementDto dto)
+    public ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto)
     {
         var ships = _playerShips[CurrentPlayer!];
         var board = _playerBoard[CurrentPlayer!];
-        _selectedShip = dto.CurrentShip;
-        _indexPlayerCursor = dto.IndexPlayerCursor;
+        _selectedShip = editShipPlacementDto.CurrentShip;
+        _indexPlayerCursor = editShipPlacementDto.IndexPlayerCursor;
 
-        return dto.KeyEvent switch
+        return editShipPlacementDto.KeyEvent switch
         {
             ConsoleKey.Q  => HandlePrevShip(ships, board),
             ConsoleKey.W or ConsoleKey.UpArrow => HandleShipPlacementMove(0, -1, board),
@@ -105,45 +116,42 @@ public class GameService : IGameService
     }
 
     /// <summary>Resolves an attack on the opponent's board, switches turns, and returns the updated state.</summary>
-    public AttackResponseDto Attack(AttackDto dto)
+    public AttackResponseDto Attack(AttackDto attackDto)
     {
         var attacker = CurrentPlayer!;
         var opponent = GetOpponent(attacker);
         var attackerBoard = _playerBoard[attacker];
         var opponentBoard = _playerBoard[opponent];
 
-        if (!ValidateAttack(opponentBoard, dto.Target))
+        if (!ValidateAttack(opponentBoard, attackDto.Target))
         {
-            var existingResult = opponentBoard.Cell[(int)dto.Target.X, (int)dto.Target.Y].ReceivedAttackResult;
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, existingResult, false);
+            var existingResult = opponentBoard.Cell[(int)attackDto.Target.X, (int)attackDto.Target.Y].ReceivedAttackResult;
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, attackDto.Target, existingResult, false);
         }
 
-        var result = ReceiveAttack(opponentBoard, dto.Target);
+        var result = ReceiveAttack(opponentBoard, attackDto.Target);
 
         if (IsAllShipsOnBoardSunk(_playerShips[opponent]))
-            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, dto.Target, result, true);
+            return new AttackResponseDto(attackerBoard, opponentBoard, attacker, opponent, attackDto.Target, result, true);
 
         SwitchTurn();
         var newOpponent = GetOpponent(CurrentPlayer!);
-        return new AttackResponseDto(_playerBoard[CurrentPlayer!], _playerBoard[newOpponent], CurrentPlayer!, newOpponent, dto.Target, result, false);
+        return new AttackResponseDto(_playerBoard[CurrentPlayer!], _playerBoard[newOpponent], CurrentPlayer!, newOpponent, attackDto.Target, result, false);
     }
 
-    // ===== HELPER FUNCTION =====
 
-    /// <summary>Check if the all of the player's ships is sunk</summary>
-    private static bool IsAllShipsOnBoardSunk(List<IShip> ship) => ship.All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
+    /*
+    ======================================== HELPER FUNCTION ========================================
+    */
 
-    private IPlayer GetOpponent(IPlayer player) => _players.First(p => p != player);
-
+    /// <summary>Advances <see cref="CurrentPlayer"/> and <see cref="_indexCurrentPlayer"/> to the opponent.</summary>
     private void SwitchTurn()
     {
         CurrentPlayer = GetOpponent(CurrentPlayer!);
         _indexCurrentPlayer = _players.IndexOf(CurrentPlayer);
     }
 
-    private static bool ValidateAttack(IBoard board, Coordinate coordinate) =>
-        board.Cell[(int)coordinate.X, (int)coordinate.Y].ReceivedAttackResult == null;
-
+    /// <summary>Applies an attack to the cell at the given coordinate and returns the result.</summary>
     private AttackResult ReceiveAttack(IBoard receiverBoard, Coordinate coordinate)
     {
         var cell = receiverBoard.Cell[(int)coordinate.X, (int)coordinate.Y];
@@ -158,6 +166,25 @@ public class GameService : IGameService
         return cell.ReceivedAttackResult == AttackResult.Sunk ? AttackResult.Sunk : AttackResult.Hit;
     }
 
+    /// <summary>Check if the all of the player's ships is sunk</summary>
+    private static bool IsAllShipsOnBoardSunk(List<IShip> ship) => ship.All(s => s.Placement!.All(c => c.ReceivedAttackResult != null));
+
+    /// <summary>Returns the player in the game who is not the given player.</summary>
+    private IPlayer GetOpponent(IPlayer player) => _players.First(p => p != player);
+
+    /// <summary>Constructs a <see cref="Coordinate"/> from the given horizontal and vertical labels.</summary>
+    private static Coordinate GetCoordinate(HorizontalLabel horizontalLabel, VerticalLabel verticalLabel) =>
+        new(horizontalLabel, verticalLabel);
+
+    /// <summary>Returns the ship occupying the given coordinate, or null if the cell is empty.</summary>
+    private static IShip? GetShipAtCoordinate(IBoard board, Coordinate coordinate) =>
+        board.Cell[(int)coordinate.X, (int)coordinate.Y].Ship;
+
+    /// <summary>Returns true if the target cell has not alreadestinationY been attacked.</summary>
+    private static bool ValidateAttack(IBoard board, Coordinate coordinate) =>
+        board.Cell[(int)coordinate.X, (int)coordinate.Y].ReceivedAttackResult == null;
+
+    /// <summary>Marks all cells of the ship as Sunk if every cell has been hit.</summary>
     private static void RecordShipHit(IShip ship)
     {
         var placement = ship.Placement!;
@@ -166,24 +193,18 @@ public class GameService : IGameService
                 c.ReceivedAttackResult = AttackResult.Sunk;
     }
 
-    private static IShip? GetShipAtCoordinate(IBoard board, Coordinate coordinate) =>
-        board.Cell[(int)coordinate.X, (int)coordinate.Y].Ship;
-
-    private static Coordinate GetCoordinate(VerticalLabel verticalLabel, HorizontalLabel horizontalLabel) =>
-        new(horizontalLabel, verticalLabel);
-
-    /// <summary>Moves the selected ship by (dx, dy); rejects the move if it goes out of bounds.</summary>
-    private ShipPlacementResponseDto HandleShipPlacementMove(int dx, int dy, IBoard board)
+    /// <summary>Moves the selected ship by (destinationX, destinationY); rejects the move if it goes out of bounds.</summary>
+    private ShipPlacementResponseDto HandleShipPlacementMove(int destinationX, int destinationY, IBoard board)
     {
         var ships = _playerShips[CurrentPlayer!];
-        int newX = (int)_indexPlayerCursor.X + dx;
-        int newY = (int)_indexPlayerCursor.Y + dy;
+        int newX = (int)_indexPlayerCursor.X + destinationX;
+        int newY = (int)_indexPlayerCursor.Y + destinationY;
 
         if (newX < 0 || newX >= board.Size || newY < 0 || newY >= board.Size)
             return BuildResponse(board, ships);
 
-        var newCursor = new Coordinate((HorizontalLabel)newX, (VerticalLabel)newY);
-        var newCoords = GetShipCoordinates(_selectedShip!, newCursor);
+        var newCursor = GetCoordinate((HorizontalLabel)newX, (VerticalLabel)newY);
+        var newCoords = GetShipCoordinatesWithOrientation(_selectedShip!, newCursor, _selectedShip!.Orientation);
 
         if (!newCoords.All(c => IsInBounds(c, board.Size)))
             return BuildResponse(board, ships);
@@ -221,7 +242,7 @@ public class GameService : IGameService
         if (minY < 0) cursorY -= minY;
         if (maxY >= board.Size) cursorY -= maxY - (board.Size - 1);
 
-        _indexPlayerCursor = new Coordinate((HorizontalLabel)cursorX, (VerticalLabel)cursorY);
+        _indexPlayerCursor = GetCoordinate((HorizontalLabel)cursorX, (VerticalLabel)cursorY);
         newCoords = GetShipCoordinatesWithOrientation(_selectedShip, _indexPlayerCursor, newOrientation);
 
         PushUndo(ships);
@@ -359,21 +380,17 @@ public class GameService : IGameService
         return true;
     }
 
-    /// <summary>Returns the board coordinates the ship occupies at the given cursor position.</summary>
-    private static List<Coordinate> GetShipCoordinates(IShip ship, Coordinate cursor) =>
-        GetShipCoordinatesWithOrientation(ship, cursor, ship.Orientation);
-
     /// <summary>Returns coordinates for a ship at a cursor position using a specific orientation.</summary>
     private static List<Coordinate> GetShipCoordinatesWithOrientation(IShip ship, Coordinate cursor, Orientation orientation)
     {
         int length = (int)ship.ShipType;
-        int anchorIdx = length / 2;
+        int anchorIdestinationX = length / 2;
         var coords = new List<Coordinate>(length);
 
         for (int i = 0; i < length; i++)
             coords.Add(orientation == Orientation.Vertical
-                ? new Coordinate(cursor.X, (VerticalLabel)((int)cursor.Y - anchorIdx + i))
-                : new Coordinate((HorizontalLabel)((int)cursor.X - anchorIdx + i), cursor.Y));
+                ? GetCoordinate(cursor.X, (VerticalLabel)((int)cursor.Y - anchorIdestinationX + i))
+                : GetCoordinate((HorizontalLabel)((int)cursor.X - anchorIdestinationX + i), cursor.Y));
 
         return coords;
     }
@@ -381,8 +398,8 @@ public class GameService : IGameService
     /// <summary>Returns the middle cell coordinate of the ship, used as the cursor reference point.</summary>
     private static Coordinate GetAnchorCoordinate(IShip ship)
     {
-        int anchorIdx = (int)ship.ShipType / 2;
-        return ship.Placement![anchorIdx].Coordinate;
+        int anchorIdestinationX = (int)ship.ShipType / 2;
+        return ship.Placement![anchorIdestinationX].Coordinate;
     }
 
     /// <summary>Returns true if the coordinate falls within the board boundaries.</summary>
@@ -478,5 +495,20 @@ public class GameService : IGameService
         return ships;
     }
 
-    
+    /// <summary>Generate cells within 2 dimensional array.</summary>
+    private ICell[,] GenerateCells(int boardSize)
+    {
+        ICell[,] cells = new ICell[boardSize, boardSize];
+
+        for (int x = 0; x < boardSize; x++)
+        {
+            for (int y = 0; y < boardSize; y++)
+            {
+                var coordinate = GetCoordinate((HorizontalLabel)x, (VerticalLabel)y);
+                cells[x, y] = new Cell(coordinate);
+            }
+        }
+
+        return cells;
+    }
 }

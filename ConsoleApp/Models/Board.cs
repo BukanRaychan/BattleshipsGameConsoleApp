@@ -7,27 +7,11 @@ public class Board : IBoard
     public ICell[,] Cell { get; set; }
     public int Size { get; set; }
 
-    public Board(int size)
+    public Board(int size, ICell[,] cells)
     {
         Size = size;
-        Cell = GenerateCells();
+        Cell = cells;
     }
 
     
-
-    private ICell[,] GenerateCells()
-    {
-        ICell[,] cells = new ICell[Size, Size];
-
-        for (int x = 0; x < Size; x++)
-        {
-            for (int y = 0; y < Size; y++)
-            {
-                var coordinate = new Coordinate((HorizontalLabel)x, (VerticalLabel)y);
-                cells[x, y] = new Cell(coordinate);
-            }
-        }
-
-        return cells;
-    }
 }

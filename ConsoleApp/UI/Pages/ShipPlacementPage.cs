@@ -29,7 +29,7 @@ public class ShipPlacementPage : IPage
             if (key == ConsoleKey.Escape)
                 return new MainMenuPage(_controller);
 
-            _state = _controller.EditShipPlacement(
+            _state = _controller.PlaceShip(
                 new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
             );
 
@@ -87,25 +87,25 @@ public class ShipPlacementPage : IPage
 
     private Table BuildBoard()
     {
-        var board = _state.Board;
+        IBoard board = _state.Board;
 
-        var selectedSet = _state.SelectedShip!.Placement!
-            .Select(c => ((int)c.Coordinate.X, (int)c.Coordinate.Y))
-            .ToHashSet();
+        HashSet<(int x, int y)> surroundingZone = [];
+        HashSet<(int x, int y)> selectedSet = [.. _state.SelectedShip!.Placement!.Select(c => ((int)c.Coordinate.X, (int)c.Coordinate.Y))];
 
-        var surroundingZone = new HashSet<(int x, int y)>();
+        
         if (selectedSet.Count > 0)
         {
-            int minX = Math.Max(0, selectedSet.Min(c => c.Item1) - 1);
-            int maxX = Math.Min(board.Size - 1, selectedSet.Max(c => c.Item1) + 1);
-            int minY = Math.Max(0, selectedSet.Min(c => c.Item2) - 1);
-            int maxY = Math.Min(board.Size - 1, selectedSet.Max(c => c.Item2) + 1);
+            int minX = Math.Max(0, selectedSet.Min(c => c.x) - 1);
+            int maxX = Math.Min(board.Size - 1, selectedSet.Max(c => c.x) + 1);
+            int minY = Math.Max(0, selectedSet.Min(c => c.y) - 1);
+            int maxY = Math.Min(board.Size - 1, selectedSet.Max(c => c.y) + 1);
 
             for (int sx = minX; sx <= maxX; sx++)
             for (int sy = minY; sy <= maxY; sy++)
             {
-                if (!selectedSet.Contains((sx, sy)))
+                if (!selectedSet.Contains((sx, sy))){
                     surroundingZone.Add((sx, sy));
+                }
             }
         }
 
@@ -130,7 +130,7 @@ public class ShipPlacementPage : IPage
     private string GetCellMarkup(
         ICell cell, int x, int y,
         HashSet<(int, int)> selectedSet,
-        HashSet<(int x, int y)> surroundingZone)
+        HashSet<(int, int)> surroundingZone)
     {
         bool isSelected = selectedSet.Contains((x, y));
         bool isSurrounding = surroundingZone.Contains((x, y));
