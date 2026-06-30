@@ -11,14 +11,17 @@ public class GameLayout
     private MessageType _eventMsgType = default;
     private readonly GameController _controller;
 
+    private readonly (int x, int y) _startCursor;
+
     public GameLayout(GameController gameController)
     {
         _controller = gameController;
-        _controller.OnMessage += (msg, msgType) => {_eventMsg = msg; _eventMsgType = msgType;};
+        _controller.OnMessage += (msg, msgType) => { _eventMsg = msg; _eventMsgType = msgType; };
     }
 
     public IPage? Render(IPage page)
     {
+
         AnsiConsole.Clear();
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("""
@@ -33,9 +36,11 @@ public class GameLayout
                                                                       \/_/[/]
 """);
         AnsiConsole.WriteLine();
+        
+        /*
         if (_eventMsg != "")
         {
-            var (icon, color) = _eventMsgType switch
+            (string icon, string color) = _eventMsgType switch
             {
                 MessageType.Info  => ("ℹ", "dodgerblue2"),
                 MessageType.Debug => ("⚙", "gold1"),
@@ -45,6 +50,7 @@ public class GameLayout
             AnsiConsole.MarkupLine($"[bold {color}]{icon}  {Markup.Escape(_eventMsg)}[/]");
             ClearEventMsg();
         };
+        */
 
         AnsiConsole.WriteLine();
 
@@ -54,5 +60,5 @@ public class GameLayout
         return next;
     }
 
-    private void ClearEventMsg() {_eventMsg = ""; _eventMsgType = default;}
+    private void ClearEventMsg() { _eventMsg = ""; _eventMsgType = default; }
 }

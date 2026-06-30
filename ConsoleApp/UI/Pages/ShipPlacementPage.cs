@@ -24,10 +24,13 @@ public class ShipPlacementPage : IPage
 
         while (true)
         {
-            var key = Console.ReadKey(intercept: true).Key;
+            ConsoleKey key = Console.ReadKey(intercept: true).Key;
 
             if (key == ConsoleKey.Escape)
-                return new MainMenuPage(_controller);
+            {
+                IPage? menuPage = new MainMenuPage(_controller);
+                return menuPage;
+            }
 
             _state = _controller.PlaceShip(
                 new EditShipPlacementDto(_state.SelectedShip as Ship, key, _state.IndexPlayerCursor)
@@ -35,8 +38,9 @@ public class ShipPlacementPage : IPage
 
             if (_state.IsPlacementPhaseFinished)
             {
-                var attackState = _controller.StartAttackPhase();
-                return new TransitionPage(_controller, attackState);
+                AttackResponseDto attackState = _controller.StartAttackPhase();
+                IPage? transitionPage = new TransitionPage(_controller, attackState);
+                return transitionPage;
             }
 
             Console.SetCursorPosition(0, _sectionRow);
@@ -50,7 +54,6 @@ public class ShipPlacementPage : IPage
             new Rule($"[bold yellow]BATTLESHIPS[/]  [dim]|[/]  [cyan]Ship Placement[/]")
                 .LeftJustified()
         );
-        Console.WriteLine();
 
         _sectionRow = Console.CursorTop;
         RenderSection();
@@ -62,23 +65,24 @@ public class ShipPlacementPage : IPage
     private void RenderSection()
     {
         AnsiConsole.MarkupLine(
-            $"  [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]  " +
+            $"   [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]  " +
             $"[dim]|[/]  " +
             (_state.IsValidPlacement
-                ? "[chartreuse1]✓ Valid placement  [/]"
-                : "[red1]✗ Invalid placement[/]")
+                ? "[chartreuse1]✓ Valid placement                                                                                               [/]"
+                : "[red1]✗ Invalid placement. You cannot move to the previous or next ship, nor confirm, until the placement is valid.[/]")
         );
+
         AnsiConsole.WriteLine();
 
-        var boardPanel = new Panel(BuildBoard())
+        Panel boardPanel = new Panel(BuildBoard())
             .Header("[bold] Board [/]")
             .BorderColor(Color.CornflowerBlue);
 
-        var shipPanel = new Panel(BuildShipList())
+        Panel shipPanel = new Panel(BuildShipList())
             .Header("[bold] Ships [/]")
             .BorderColor(Color.CornflowerBlue);
 
-        var layout = new Table().NoBorder().HideHeaders();
+        Table layout = new Table().NoBorder().HideHeaders();
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddRow(boardPanel, shipPanel);
@@ -92,7 +96,6 @@ public class ShipPlacementPage : IPage
         HashSet<(int x, int y)> surroundingZone = [];
         HashSet<(int x, int y)> selectedSet = [.. _state.SelectedShip!.Placement!.Select(c => ((int)c.Coordinate.X, (int)c.Coordinate.Y))];
 
-        
         if (selectedSet.Count > 0)
         {
             int minX = Math.Max(0, selectedSet.Min(c => c.x) - 1);
@@ -101,25 +104,32 @@ public class ShipPlacementPage : IPage
             int maxY = Math.Min(board.Size - 1, selectedSet.Max(c => c.y) + 1);
 
             for (int sx = minX; sx <= maxX; sx++)
-            for (int sy = minY; sy <= maxY; sy++)
             {
-                if (!selectedSet.Contains((sx, sy))){
-                    surroundingZone.Add((sx, sy));
+                for (int sy = minY; sy <= maxY; sy++)
+                {
+                    if (!selectedSet.Contains((sx, sy)))
+                    {
+                        surroundingZone.Add((sx, sy));
+                    }
                 }
             }
         }
 
-        var table = new Table().NoBorder();
+        Table table = new Table().NoBorder();
         table.AddColumn(new TableColumn("[dim]  [/]"));
         for (int x = 0; x < board.Size; x++)
+        {
             table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+        }
 
         for (int y = 0; y < board.Size; y++)
         {
-            var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            List<string> row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
 
             for (int x = 0; x < board.Size; x++)
+            {
                 row.Add(GetCellMarkup(board.Cell[x, y], x, y, selectedSet, surroundingZone));
+            }
 
             table.AddRow(row.ToArray());
         }
@@ -138,31 +148,35 @@ public class ShipPlacementPage : IPage
         if (isSelected)
         {
             string color = _state.IsValidPlacement ? "chartreuse1" : "red1";
-            return  $"[{color}] ■[/]";
+            return $"[{color}] ■[/]";
         }
 
         if (isSurrounding)
+        {
             return cell.Ship != null ? "[bold red1] ■[/]" : "[dim green] ·[/]";
+        }
 
         if (cell.Ship != null)
+        {
             return "[cornflowerblue] ■[/]";
+        }
 
         return "[steelblue1] ·[/]";
     }
 
     private Table BuildShipList()
     {
-        var table = new Table().NoBorder();
+        Table table = new Table().NoBorder();
         table.AddColumn(new TableColumn(""));
 
-        foreach (var ship in _state.Ships)
+        foreach (IShip ship in _state.Ships)
         {
             bool isSelected = ship == _state.SelectedShip;
             int length = (int)ship.ShipType;
             string name = ship.ShipType.ToString();
             string orient = ship.Orientation == Orientation.Vertical ? "↕ Vertical  " : "↔ Horizontal";
-            string filled = new('■', length);
-            string empty  = new('·', 5 - length);
+            string filled = new string('■', length);
+            string empty  = new string('·', 5 - length);
 
             if (isSelected)
             {
@@ -186,7 +200,7 @@ public class ShipPlacementPage : IPage
 
     private static Panel BuildControls()
     {
-        var grid = new Grid();
+        Grid grid = new Grid();
         grid.AddColumn();
         grid.AddColumn();
         grid.AddColumn();
@@ -210,8 +224,9 @@ public class ShipPlacementPage : IPage
             "[red1]Esc[/]  Exit to Menu "
         );
 
-        return new Panel(grid)
+        Panel controls = new Panel(grid)
             .Header("[bold] Controls [/]")
             .BorderColor(Color.Grey);
+        return controls;
     }
 }

@@ -1,5 +1,8 @@
 using ConsoleApp.Controllers;
+using ConsoleApp.Services;
 using ConsoleApp.UI;
 
-App app = new App(new GameController());
+IGameService gameService = new GameService();
+GameController controller = new GameController(gameService);
+App app = new App(controller);
 app.Run();

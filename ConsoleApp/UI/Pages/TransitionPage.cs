@@ -27,14 +27,14 @@ public class TransitionPage : IPage
 
         if (_state.LastAttack.HasValue && _state.LastResult.HasValue)
         {
-            var (icon, color) = _state.LastResult.Value switch
+            (string icon, string color) = _state.LastResult.Value switch
             {
                 AttackResult.Sunk => ("💥", "red1"),
                 AttackResult.Hit  => ("🎯", "darkorange"),
                 _                 => ("💨", "dodgerblue1"),
             };
 
-            var coord = _state.LastAttack.Value;
+            Coordinate coord = _state.LastAttack.Value;
             string col = ((int)coord.X + 1).ToString();
             string row = coord.Y.ToString();
 
@@ -56,26 +56,31 @@ public class TransitionPage : IPage
         }
 
         AnsiConsole.MarkupLine($"[dim]→[/]  [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}'s turn[/]");
-        AnsiConsole.MarkupLine($"   [dim]Make sure {Markup.Escape(_state.CurrentOpponent.Name)} isn't looking, then press any key when readestinationY...[/]");
+        AnsiConsole.MarkupLine($"   [dim]Make sure {Markup.Escape(_state.CurrentOpponent.Name)} isn't looking, then press any key when ready...[/]");
         AnsiConsole.WriteLine();
 
         Console.ReadKey(intercept: true);
-        return new GameBoardPage(_controller, _state);
+        IPage? nextPage = new GameBoardPage(_controller, _state);
+        return nextPage;
     }
 
     private Table BuildAttackedBoard()
     {
-        var board = _state.PlayerBoard;
-        var table = new Table().NoBorder();
+        IBoard board = _state.PlayerBoard;
+        Table table = new Table().NoBorder();
         table.AddColumn(new TableColumn("[dim]  [/]"));
         for (int x = 0; x < board.Size; x++)
+        {
             table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+        }
 
         for (int y = 0; y < board.Size; y++)
         {
-            var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            List<string> row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
             for (int x = 0; x < board.Size; x++)
+            {
                 row.Add(GetCellMarkup(board.Cell[x, y]));
+            }
             table.AddRow(row.ToArray());
         }
 

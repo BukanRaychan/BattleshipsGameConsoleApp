@@ -26,7 +26,7 @@ public class GameBoardPage : IPage
 
         while (true)
         {
-            var key = Console.ReadKey(intercept: true).Key;
+            ConsoleKey key = Console.ReadKey(intercept: true).Key;
 
             switch (key)
             {
@@ -42,20 +42,22 @@ public class GameBoardPage : IPage
                     break;
 
                 case ConsoleKey.F or ConsoleKey.Enter or ConsoleKey.Spacebar:
-                    var result = _controller.Attack(new AttackDto(_cursor));
-                    return result.IsGameOver
+                    AttackResponseDto result = _controller.Attack(new AttackDto(_cursor));
+                    IPage? nextPage = result.IsGameOver
                         ? new GameOverPage(_controller, result)
                         : new TransitionPage(_controller, result);
+                    return nextPage;
 
                 case ConsoleKey.Escape:
-                    return new MainMenuPage(_controller);
+                    IPage? menuPage = new MainMenuPage(_controller);
+                    return menuPage;
             }
         }
     }
 
     private Coordinate InitCursor()
     {
-        var board = _state.OpponentBoard;
+        IBoard board = _state.OpponentBoard;
         int diagonals = board.Size * 2 - 1;
 
         for (int d = 0; d < diagonals; d++)
@@ -67,7 +69,9 @@ public class GameBoardPage : IPage
             {
                 int y = d - x;
                 if (board.Cell[x, y].ReceivedAttackResult == null)
+                {
                     return new Coordinate((HorizontalLabel)x, (VerticalLabel)y);
+                }
             }
         }
 
@@ -79,7 +83,7 @@ public class GameBoardPage : IPage
         int destinationX = key is ConsoleKey.A or ConsoleKey.LeftArrow  ? -1 : key is ConsoleKey.D or ConsoleKey.RightArrow ? 1 : 0;
         int destinationY = key is ConsoleKey.W or ConsoleKey.UpArrow    ? -1 : key is ConsoleKey.S or ConsoleKey.DownArrow  ? 1 : 0;
 
-        var board = _state.OpponentBoard;
+        IBoard board = _state.OpponentBoard;
         int size  = board.Size;
         int x = (int)_cursor.X + destinationX;
         int y = (int)_cursor.Y + destinationY;
@@ -90,7 +94,9 @@ public class GameBoardPage : IPage
             int wy = ((y % size) + size) % size;
 
             if (board.Cell[wx, wy].ReceivedAttackResult == null)
+            {
                 return new Coordinate((HorizontalLabel)wx, (VerticalLabel)wy);
+            }
         }
 
         return _cursor;
@@ -106,6 +112,7 @@ public class GameBoardPage : IPage
         AnsiConsole.MarkupLine(
             $"  [dim]Player:[/] [bold chartreuse1]{Markup.Escape(_state.CurrentPlayer.Name)}[/]"
         );
+
         AnsiConsole.WriteLine();
 
         _opponentsBoardsStartCoordinate = (6, Console.CursorTop + 2);
@@ -117,15 +124,15 @@ public class GameBoardPage : IPage
 
     private void RenderBoards()
     {
-        var opponentPanel = new Panel(BuildOpponentBoard())
+        Panel opponentPanel = new Panel(BuildOpponentBoard())
             .Header("[bold] Opponent's Board [/]")
             .BorderColor(Color.Red1);
 
-        var ownPanel = new Panel(BuildOwnBoard())
+        Panel ownPanel = new Panel(BuildOwnBoard())
             .Header("[bold] Your Board [/]")
             .BorderColor(Color.CornflowerBlue);
 
-        var layout = new Table().NoBorder().HideHeaders();
+        Table layout = new Table().NoBorder().HideHeaders();
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddColumn(new TableColumn("").NoWrap());
         layout.AddRow(opponentPanel, ownPanel);
@@ -134,17 +141,21 @@ public class GameBoardPage : IPage
 
     private Table BuildOwnBoard()
     {
-        var board = _state.PlayerBoard;
-        var table = new Table().NoBorder();
+        IBoard board = _state.PlayerBoard;
+        Table table = new Table().NoBorder();
         table.AddColumn(new TableColumn("[dim]  [/]"));
         for (int x = 0; x < board.Size; x++)
+        {
             table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+        }
 
         for (int y = 0; y < board.Size; y++)
         {
-            var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            List<string> row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
             for (int x = 0; x < board.Size; x++)
+            {
                 row.Add(GetOwnCellMarkup(board.Cell[x, y]));
+            }
             table.AddRow(row.ToArray());
         }
 
@@ -153,17 +164,21 @@ public class GameBoardPage : IPage
 
     private Table BuildOpponentBoard()
     {
-        var board = _state.OpponentBoard;
-        var table = new Table().NoBorder();
+        IBoard board = _state.OpponentBoard;
+        Table table = new Table().NoBorder();
         table.AddColumn(new TableColumn("[dim]  [/]"));
         for (int x = 0; x < board.Size; x++)
+        {
             table.AddColumn(new TableColumn($"[dim]{x + 1,2}[/]").Centered());
+        }
 
         for (int y = 0; y < board.Size; y++)
         {
-            var row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
+            List<string> row = new List<string> { $"[dim]{(VerticalLabel)y} [/]" };
             for (int x = 0; x < board.Size; x++)
+            {
                 row.Add(GetOpponentCellMarkup(board.Cell[x, y], x, y));
+            }
             table.AddRow(row.ToArray());
         }
 
@@ -186,7 +201,9 @@ public class GameBoardPage : IPage
         bool isCursor = x == (int)_cursor.X && y == (int)_cursor.Y;
 
         if (isCursor && cell.ReceivedAttackResult == null)
+        {
             return "[bold yellow] ▶[/]";
+        }
 
         return cell.ReceivedAttackResult switch
         {
@@ -199,7 +216,7 @@ public class GameBoardPage : IPage
 
     private static Panel BuildControls()
     {
-        var grid = new Grid();
+        Grid grid = new Grid();
         grid.AddColumn();
         grid.AddColumn();
         grid.AddColumn();
@@ -215,8 +232,9 @@ public class GameBoardPage : IPage
             "[red1]Esc[/]   Exit to Menu"
         );
 
-        return new Panel(grid)
+        Panel controls = new Panel(grid)
             .Header("[bold] Controls [/]")
             .BorderColor(Color.Grey);
+        return controls;
     }
 }

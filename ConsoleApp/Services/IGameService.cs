@@ -1,13 +1,15 @@
 using ConsoleApp.DTOs;
 using ConsoleApp.Models;
+using ConsoleApp.Types;
 
 namespace ConsoleApp.Services;
 
 public interface IGameService
 {
-    public IPlayer? CurrentPlayer {get; set;}
-    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto startPlacementPhaseDto);
-    public ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto);
-    public AttackResponseDto StartAttackPhase();
-    public AttackResponseDto Attack(AttackDto attackDto);
+    event MessageDelegate? OnMessage;
+    IPlayer? CurrentPlayer { get; set; }
+    ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto startPlacementPhaseDto);
+    ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto);
+    AttackResponseDto StartAttackPhase();
+    AttackResponseDto Attack(AttackDto attackDto);
 }

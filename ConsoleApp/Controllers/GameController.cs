@@ -7,24 +7,29 @@ namespace ConsoleApp.Controllers;
 
 public class GameController
 {
-    private IGameService? _gameService; 
+    private readonly IGameService _gameService;
     public event MessageDelegate? OnMessage;
 
-    public ShipPlacementResponseDto PlaceShip(StartPlacementPhaseDto startPlacementPhaseDto)
+    public GameController(IGameService gameService)
     {
-        _gameService = new GameService(MsgEvent);
-        return _gameService.StartShipPlacementPhase(startPlacementPhaseDto);
+        _gameService = gameService;
+        _gameService.OnMessage += RaiseMessage;
     }
 
-    public ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto) => _gameService!.PlaceShip(editShipPlacementDto);
+    public ShipPlacementResponseDto StartShipPlacementPhase(StartPlacementPhaseDto startPlacementPhaseDto) =>
+        _gameService.StartShipPlacementPhase(startPlacementPhaseDto);
 
-    public AttackResponseDto StartAttackPhase() => _gameService!.StartAttackPhase();
+    public ShipPlacementResponseDto PlaceShip(EditShipPlacementDto editShipPlacementDto) =>
+        _gameService.PlaceShip(editShipPlacementDto);
 
-    public AttackResponseDto Attack(AttackDto attackDto) => _gameService!.Attack(attackDto);
+    public AttackResponseDto StartAttackPhase() =>
+        _gameService.StartAttackPhase();
 
-    private void MsgEvent(string msg, MessageType msgType)
+    public AttackResponseDto Attack(AttackDto attackDto) =>
+        _gameService.Attack(attackDto);
+
+    private void RaiseMessage(string msg, MessageType msgType)
     {
         OnMessage?.Invoke(msg, msgType);
-    }   
-
+    }
 }

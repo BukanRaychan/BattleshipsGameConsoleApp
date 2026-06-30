@@ -10,7 +10,7 @@ public class MainMenuPage : IPage
     {
         Enter_Game,
         Quit
-    } 
+    }
 
 
     public MainMenuPage(GameController controller)
@@ -25,16 +25,17 @@ public class MainMenuPage : IPage
                 .LeftJustified()
         );
         Console.WriteLine();
-        var action = AnsiConsole.Prompt(
+        Action action = AnsiConsole.Prompt(
             new SelectionPrompt<Action>()
                 .HighlightStyle(new Style(Color.Black, Color.Chartreuse1, Decoration.Bold))
                 .AddChoices(Action.Enter_Game, Action.Quit));
 
-        return action switch
+        IPage? nextPage = action switch
         {
             Action.Enter_Game => new GameInitPage(_controller),
-            Action.Quit => null,
-            _ => this
+            Action.Quit       => null,
+            _                 => this
         };
+        return nextPage;
     }
 }
