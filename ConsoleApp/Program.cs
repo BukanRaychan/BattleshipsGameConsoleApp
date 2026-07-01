@@ -10,6 +10,7 @@ IGameService gameService = new GameService(
     (shipType, orientation) => new Ship(shipType, orientation),
     coord => new Cell(coord)
 );
+
 GameController controller = new GameController(gameService);
 App app = new App(controller);
 app.Run();

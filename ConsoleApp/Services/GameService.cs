@@ -83,7 +83,6 @@ public class GameService : IGameService
         _selectedShip = currentShips.First();
         _indexPlayerCursor = GetAnchorCoordinate(_selectedShip);
 
-        // Lift the first ship off the board so cell.Ship only tracks non-selected ships
         LiftShip(_selectedShip);
 
         ShipPlacementResponseDto response = new ShipPlacementResponseDto(
@@ -252,7 +251,6 @@ public class GameService : IGameService
 
         PushUndo(ships);
 
-        // Only update the ship's intended placement — never touch cell.Ship for the lifted ship
         UpdateShipPlacement(_selectedShip!, newCoords, board);
         _indexPlayerCursor = newCursor;
         _redoStack.Clear();
@@ -441,7 +439,6 @@ public class GameService : IGameService
         {
             for (int y = minY; y <= maxY; y++)
             {
-                // Since the selected ship is lifted, cell.Ship only contains other ships
                 if (board.Cell[x, y].Ship != null)
                 {
                     return false;
@@ -525,7 +522,6 @@ public class GameService : IGameService
     /// <summary>Clears the board and restores all ship placements from a PlacementState.</summary>
     private void ApplySnapshot(PlacementState state, IBoard board, List<IShip> ships)
     {
-        // Clear all cells
         for (int x = 0; x < board.Size; x++)
         {
             for (int y = 0; y < board.Size; y++)
@@ -537,14 +533,12 @@ public class GameService : IGameService
         _selectedShip = state.SelectedShipIndex >= 0 ? ships[state.SelectedShipIndex] : null;
         _indexPlayerCursor = state.Cursor;
 
-        // Restore ship placements from snapshot coordinates
         foreach ((IShip ship, List<Coordinate> coords, Orientation orientation) in state.ShipStates)
         {
             ship.Orientation = orientation;
             ship.Placement = [.. coords.Select(c => board.Cell[(int)c.X, (int)c.Y])];
         }
 
-        // Land all ships except the selected one (which stays lifted)
         foreach (IShip ship in ships.Where(s => s != _selectedShip))
         {
             LandShip(ship);
