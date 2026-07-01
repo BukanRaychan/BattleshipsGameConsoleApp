@@ -6,6 +6,10 @@ namespace ConsoleApp.Services;
 
 public class GameService : IGameService
 {
+    private readonly Func<string, IPlayer> _playerFactory;
+    private readonly Func<int, ICell[,], IBoard> _boardFactory;
+    private readonly Func<ShipType, Orientation, IShip> _shipFactory;
+    private readonly Func<Coordinate, ICell> _cellFactory;
     /// <summary>Ordered list of players in the game.</summary>
     private readonly List<IPlayer> _players;
     /// <summary>Maps each player to their own board.</summary>
@@ -36,8 +40,16 @@ public class GameService : IGameService
     );
 
     /// <summary>Initializes empty player, board, and ship collections.</summary>
-    public GameService()
+    public GameService(
+        Func<string, IPlayer> playerFactory,
+        Func<int, ICell[,], IBoard> boardFactory,
+        Func<ShipType, Orientation, IShip> shipFactory,
+        Func<Coordinate, ICell> cellFactory)
     {
+        _playerFactory = playerFactory;
+        _boardFactory = boardFactory;
+        _shipFactory = shipFactory;
+        _cellFactory = cellFactory;
         _players = new List<IPlayer>();
         _playerBoard = new Dictionary<IPlayer, IBoard>();
         _playerShips = new Dictionary<IPlayer, List<IShip>>();
@@ -56,11 +68,11 @@ public class GameService : IGameService
         _undoStack.Clear();
         _redoStack.Clear();
 
-        _players.AddRange([new Player(startPlacementPhaseDto.PlayerOneName), new Player(startPlacementPhaseDto.PlayerTwoName)]);
+        _players.AddRange([_playerFactory(startPlacementPhaseDto.PlayerOneName), _playerFactory(startPlacementPhaseDto.PlayerTwoName)]);
 
         foreach (IPlayer player in _players)
         {
-            Board board = new Board(startPlacementPhaseDto.BoardSize, GenerateCells(startPlacementPhaseDto.BoardSize));
+            IBoard board = _boardFactory(startPlacementPhaseDto.BoardSize, GenerateCells(startPlacementPhaseDto.BoardSize));
             _playerBoard[player] = board;
             _playerShips[player] = PlaceShipsDefault(board);
         }
@@ -550,7 +562,7 @@ public class GameService : IGameService
     }
 
     /// <summary>Places all ships vertically in columns as the initial default arrangement.</summary>
-    private static List<IShip> PlaceShipsDefault(IBoard board)
+    private List<IShip> PlaceShipsDefault(IBoard board)
     {
         List<IShip> ships = new List<IShip>();
         ShipType[] shipTypes = Enum.GetValues<ShipType>();
@@ -558,7 +570,7 @@ public class GameService : IGameService
         for (int col = 0; col < shipTypes.Length; col++)
         {
             ShipType shipType = shipTypes[col];
-            Ship ship = new Ship(shipType, Orientation.Vertical);
+            IShip ship = _shipFactory(shipType, Orientation.Vertical);
             List<ICell> placement = new List<ICell>();
 
             for (int row = 0; row < (int)shipType; row++)
@@ -585,7 +597,7 @@ public class GameService : IGameService
             for (int y = 0; y < boardSize; y++)
             {
                 Coordinate coordinate = GetCoordinate((HorizontalLabel)x, (VerticalLabel)y);
-                cells[x, y] = new Cell(coordinate);
+                cells[x, y] = _cellFactory(coordinate);
             }
         }
 
