@@ -118,11 +118,11 @@ public class ShipPlacementPage : IPage
         }
 
         Table table = new Table().NoBorder().Collapse();
-        table.AddColumn(new TableColumn("[dim]  [/]") { Padding = new Padding(0, 0, 0, 0) });
+        table.AddColumn(new TableColumn("[dim]  [/]") { Padding = new Padding(0, 0, 0, 1) });
         for (int x = 0; x < board.Size; x++)
         {
             table.AddColumn(
-                new TableColumn($"[dim]{x + 1,2}[/]") { Padding = new Padding(0, 0, 0, 0) }.Centered()
+                new TableColumn($"[dim]{x + 1,2} [/]") { Padding = new Padding(0, 0, 0, 1) }.Centered()
             );
         }
 
@@ -171,7 +171,7 @@ public class ShipPlacementPage : IPage
     private Table BuildShipList()
     {
         Table table = new Table().NoBorder();
-        table.AddColumn(new TableColumn(""));
+        table.AddColumn(new TableColumn(""){Padding = new Padding(0, 0, 0, 1)});
 
         foreach (IShip ship in _state.Ships)
         {

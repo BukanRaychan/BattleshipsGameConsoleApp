@@ -1,4 +1,5 @@
 using ConsoleApp.Controllers;
+using ConsoleApp.Models;
 using ConsoleApp.Services;
 using ConsoleApp.UI;
 

@@ -12,6 +12,4 @@ public class Board : IBoard
         Size = size;
         Cell = cells;
     }
-
-    
 }
